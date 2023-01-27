@@ -18,6 +18,7 @@ def get_box( box):
 class SpliterVarV():
     def __init__(self, master, sepvar, box, yrange=(0.1, 0.9)):
         self.master = master
+        self.layout = master.layout
         spliter = tk.Frame(master, relief='raise', bd=2)
         spliter.config(cursor='hand2')
         spliter.bind('<B1-Motion>', self.drag_v)
@@ -41,7 +42,7 @@ class SpliterVarV():
         
     def drag_v(self, event):
         obj = event.widget
-        h = self.master.size[1]
+        h = self.layout.size[1]
         obj_y = self.sepvar.get()
         obj_y += (event.y / h) /3
         y1, y2 = self.yrange
@@ -57,6 +58,7 @@ class SpliterVarV():
 class SpliterVarH():
     def __init__(self, master, sepvar, box, xrange=(0.1, 0.9)):
         self.master = master
+        self.layout = master.layout
         spliter = tk.Frame(master, relief='raise', bd=2)
         spliter.config(cursor='hand2')
         spliter.bind('<B1-Motion>', self.drag_h)
@@ -71,7 +73,7 @@ class SpliterVarH():
             
     def set_pos(self, xsep):
         x, y, w, h = get_box(self.box)
-        dw = w/self.master.size[0]
+        dw = w/self.layout.size[0]
         x1, x2 = self.xrange
         relx = xsep    
         self.spliter.place(relx=xsep, rely=y, width=8, relheight=h)
@@ -137,13 +139,11 @@ class Layout(AuiObj):
         master.layout = self
         self.root = master.winfo_toplevel()           
         self.tk = master.tk     
-        self.dct  = {}
         self.objs = []
         self.seps = {}
-        self.x = self.y = 0
         self.left, self.top = 0, 0
-        self.relw = self.relh = 1
-        self.size = master.size
+        w, h = master.winfo_width(), master.winfo_height()
+        self.size = self.root.size
         top = self.add_sepvar(value=0, name='top')
         left = self.add_sepvar(value=0, name='left')
         bottom = self.add_sepvar(value=1, name='bottom')
@@ -156,7 +156,7 @@ class Layout(AuiObj):
         h = event.height
         self.set_sep('left', self.left/w)
         self.set_sep('top', self.top/h)
-        self.size = self.master.size = w, h        
+        self.size = w, h        
         self.update_objs()
         
     def pack(self, **kw):
@@ -185,8 +185,6 @@ class Layout(AuiObj):
         obj.place(relx=x, rely=y, relwidth=w-x, relheight=h-y) 
            
     def update_objs(self):         
-        self.x = self.y = 0
-        self.relw = self.relh = 1
         for obj in self.objs:
             self.place_obj(obj) 
            
@@ -253,14 +251,14 @@ class Layout(AuiObj):
         self.add(f0, box=(left, top, right, sepv))
         self.add(f1, box=(left, sepv, right, bottom))
 
-    def add_set1(self, objs=(), seph=0.3, sepv=0.6, box=None):            
+    def add_set1(self, objs=(), seph=0.2, sepv=0.7, box=None):            
         if box == None:
             box = self.box
         left, top, right, bottom = box     
         sep1 = self.add_sepvar(value=seph, name='1')        
         tree, f0, f1 = objs
         self.add(tree, (left, top, sep1, bottom))
-        self.add_V2(f0, f1, sepv, (0.2, 0.9), box=(sep1, top, right, bottom))
+        self.add_V2(f0, f1, sepv, (0.2, 0.95), box=(sep1, top, right, bottom))
         split1 = SpliterVarH(self.master, sep1, box=(left, top, 8, bottom), xrange=(0.12, 0.6))     
     
     def add_setH(self, objs=(), seph=(0.2, 0.75), sepv=0.6, box=None):   

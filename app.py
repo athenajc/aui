@@ -343,13 +343,14 @@ def App(title='A frame', size=(800, 600), Frame=None, icon=None):
     appname = title.replace(' ', '')
     root.tk.setvar('appname', appname)
     w, h = size
+    root.size = size
     root.geometry('%dx%d'%(w, h)) 
     set_icon(root, icon)
     if Frame == None:
         Frame = aFrame
     
     frame = Frame(root)
-    frame.size = size
+    frame.size = (w, h)
     #frame.pack(fill='both', expand=True)
     root.tk.setvar('app', frame)
     frame.name = appname
