@@ -76,7 +76,7 @@ class SpliterVarH():
         dw = w/self.layout.size[0]
         x1, x2 = self.xrange
         relx = xsep    
-        self.spliter.place(relx=xsep, rely=y, width=8, relheight=h)
+        self.spliter.place(relx=xsep, rely=y, width=8, relheight=h-y)
         
     def on_trace(self, *event):    
         xsep = self.sepvar.get()
@@ -280,6 +280,26 @@ class Layout(AuiObj):
         self.add(f1b, box=(sep1, sepv1, sep2, bottom))       
         self.add(f2, box=(sep2, top, right, bottom))      
         
+    def add_set2(self, objs=(), seph=(0.25, 0.625), sepv=0.7, box=None):            
+        if box == None:
+            box = self.box
+        left, top, right, bottom = box     
+        x1, x2 = seph
+        sep1 = self.add_sepvar(value=x1, name='h1')
+        sep2 = self.add_sepvar(value=x2, name='h2')   
+        sepv1 = self.add_sepvar(value=sepv, name='v2') 
+        tree, f0, f1, msg = objs
+        self.add(tree, (left, top, sep1, bottom))
+        
+        split1 = SpliterVarH(self.master, sep1, box=(left, top, 8, bottom), xrange=(0.12, 0.6))  
+        split2 = SpliterVarH(self.master, sep2, box=(x2, top, 8, sepv1), xrange=(0.35, 0.95))
+        spliter = SpliterVarV(self.master, sepv1, (sep1, sepv, right, 8), yrange=(0.2, 0.9))  
+
+        self.add(tree, box=(left, top, sep1, bottom))
+        self.add(f0, box=(sep1, top, sep2, sepv1))       
+        self.add(f1, box=(sep2, top, right, sepv1))       
+        self.add(msg, box=(sep1, sepv1, right, bottom))  
+        
 
 if __name__ == '__main__':
     from aui import App, Panel    
@@ -287,7 +307,8 @@ if __name__ == '__main__':
     layout = Layout(app)
     f0 = app.textbox = Text(app)
     f0.init_dark_config()
-    f1 = app.msg = layout.add_msg(app)    
+    f1 = app.canvas = tk.Canvas(app)
+    msg = app.msg = layout.add_msg(app)    
     tree = app.tree = FileTreeView(app)
     tree1 = app.tree1 = TreeView(app)
 
@@ -313,7 +334,7 @@ if __name__ == '__main__':
     test_add_left_top()       
     #layout.add_H3(objs=(tree, f0, f1))
     #test_V2()
-    layout.add_setH(objs=(tree, (f0, f1), tree1))
+    layout.add_set2(objs=(tree, f0, f1, msg))
     test_puts()
     app.mainloop()
 
