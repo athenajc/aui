@@ -6,38 +6,6 @@ import time
 from aui import MenuBar, Text, App, TreeView, FileTreeView, Messagebox, TreeView
 
 
-def add_textobj(master, TextClass=None):
-    if TextClass == None:
-        TextClass = Text
-    textbox = TextClass(master)
-    if hasattr(textbox, 'init_dark_config'):
-        textbox.init_dark_config()   
-    textbox.tag_config('find', foreground='black', background='#999')    
-    return textbox
-    
-def add_msg(master):
-    msg = Messagebox(master)
-    msg.tk.setvar('msg', msg)    
-    master.msg = msg
-    return msg
-    
-def add_filetree(master, TreeFrame):
-    if TreeFrame == None:
-        TreeFrame = FileTreeView
-    tree = TreeFrame(master)
-    tree.tk.setvar('filetree', tree)   
-    master.filetree = tree
-    master.tree = tree
-    return tree
-    
-def add_menu(master):
-    names = 'New,Open,,Close,,History,,Save,Save as,,Undo,Redo,,Copy,Cut,Paste,,'
-    names += 'Add Tab,Remove Tab,,Graph'
-    menubar = MenuBar(master, items=names.split(',')) 
-    #menubar.place(x=0, y=0, width=100, relheight=1)
-    
-    return menubar
-
 def get_box( box):  
     lst = []    
     for v in box:
@@ -126,8 +94,44 @@ class SpliterVarH():
         self.sepvar.set(obj_x)     
                 
          
+class AuiObj():
+    def add_textobj(self, master, TextClass=None):
+        if TextClass == None:
+            TextClass = Text
+        textbox = TextClass(master)
+        if hasattr(textbox, 'init_dark_config'):
+            textbox.init_dark_config()   
+        textbox.tag_config('find', foreground='black', background='#999')    
+        return textbox
+        
+    def add_msg(self, master):
+        msg = Messagebox(master)
+        msg.tk.setvar('msg', msg)    
+        master.msg = msg
+        return msg
+        
+    def add_filetree(self, master, TreeFrame=FileTreeView):
+        tree = TreeFrame(master)
+        tree.tk.setvar('filetree', tree)   
+        master.filetree = tree
+        master.tree = tree
+        return tree
+        
+    def add_tree(self, master, TreeFrame=TreeView):
+        tree = TreeFrame(master)
+        tree.tk.setvar('filetree', tree)   
+        master.filetree = tree
+        master.tree = tree
+        return tree
+        
+    def add_menu(self, master):
+        names = 'New,Open,,Close,,History,,Save,Save as,,Undo,Redo,,Copy,Cut,Paste,,'
+        names += 'Add Tab,Remove Tab,,Graph'
+        menubar = MenuBar(master, items=names.split(',')) 
+        return menubar
+        
 
-class Layout():     
+class Layout(AuiObj):     
     def __init__(self, master, **kw):              
         self.master = master
         master.layout = self
@@ -168,33 +172,7 @@ class Layout():
         if not widget in self.objs:   
             widget.box = box
             self.objs.append(widget)
-            self.place_obj(widget)
-        
-    def add_tree_frame(self, master):
-        if SideFrame == None:
-            filetree = add_filetree(master)
-            filetree.click_select = 'click' 
-            
-            master.filetree = sideframe = filetree
-        else:
-            sideframe = SideFrame(master)
-            sideframe.pack(fill='both', expand=True)
-            
-    def add_textmsg(self, master, TextClass=None, sep=0.7, box=(0, 0, 1, 1)):
-        if TextClass == None:
-            TextClass = Text
-        textbox = TextClass(master)
-        
-        #textbox.init_dark_config()
-        x1, y1, x2, y2 = box
-        msg = add_msg(master)         
-        sepv = self.add_sepvar(value=sep, name='v1')
-        spliter = SpliterVarV(master, sepv, (x1, sep, x2, 8))        
-        self.add(textbox, (x1, y1, x2, sepv))
-        self.add(msg, (x1, sepv, x2, y2))
-        master.textbox = textbox
-        master.msg = msg
-        return textbox, msg              
+            self.place_obj(widget)    
         
     def place_obj(self, obj):        
         x, y, w, h = get_box(obj.box)        
@@ -245,7 +223,7 @@ class Layout():
     def add_H3(self, objs=(), sep=(0.2, 0.75), box=None):
         if box == None:
             box = self.box
-        left, top, right, bottom = self.box
+        left, top, right, bottom = box
         x1, x2 = sep
         sep1 = self.add_sepvar(value=x1, name='h1')
         sep2 = self.add_sepvar(value=x2, name='h2')
@@ -260,7 +238,7 @@ class Layout():
     def add_H2(self, f0, f1, sep=0.5, xrange=(0.25, 0.75), box=None):
         if box == None:
             box = self.box
-        left, top, right, bottom = self.box
+        left, top, right, bottom = box
         xsep = self.add_sepvar(value=sep, name='h2')
         split1 = SpliterVarH(self.master, xsep, box=(sep, top, 8, bottom), xrange=xrange)  
         self.add(f0, box=(left, top, xsep, bottom))
@@ -283,16 +261,16 @@ class Layout():
         tree, f0, f1 = objs
         self.add(tree, (left, top, sep1, bottom))
         self.add_V2(f0, f1, sepv, (0.2, 0.9), box=(sep1, top, right, bottom))
-        split1 = SpliterVarH(master, sep1, box=(left, top, 8, bottom), xrange=(0.12, 0.6))     
+        split1 = SpliterVarH(self.master, sep1, box=(left, top, 8, bottom), xrange=(0.12, 0.6))     
     
     def add_setH(self, objs=(), seph=(0.2, 0.75), sepv=0.6, box=None):   
         if box == None:
             box = self.box
-        left, top, right, bottom = self.box
+        left, top, right, bottom = box
         x1, x2 = seph
         sep1 = self.add_sepvar(value=x1, name='h1')
         sep2 = self.add_sepvar(value=x2, name='h2')
-        y, h = left, bottom
+        y, h = top, bottom
         split1 = SpliterVarH(self.master, sep1, box=(x1, y, 8, h), xrange=(0.1, 0.5))  
         split2 = SpliterVarH(self.master, sep2, box=(x2, y, 8, h), xrange=(0.35, 0.95))
         sepv1 = self.add_sepvar(value=sepv, name='v2')
@@ -311,12 +289,12 @@ if __name__ == '__main__':
     layout = Layout(app)
     f0 = app.textbox = Text(app)
     f0.init_dark_config()
-    f1 = app.msg = add_msg(app)    
+    f1 = app.msg = layout.add_msg(app)    
     tree = app.tree = FileTreeView(app)
     tree1 = app.tree1 = TreeView(app)
 
     def test_add_left_top():        
-        menu = add_menu(app)
+        menu = layout.add_menu(app)
         layout.add_left(menu, 100)
         frame = tk.Frame(app, bg='#333')
         layout.add_top(frame, 32)  
