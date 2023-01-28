@@ -324,6 +324,7 @@ class TopFrame(tk.Toplevel):
     def __init__(self, title='Test Frame', size=(1300, 900)):       
         super().__init__()
         w, h = size
+        self.size = (w, h)
         self.title(title)
         self.geometry('%dx%d'%(w, h)) 
         
