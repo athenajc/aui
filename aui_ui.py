@@ -283,38 +283,13 @@ class FrameLayout():
         obj.f0.place(relwidth=obj.x)        
         obj.f1.place(relx=x1, relwidth=1-x1)
    
-    
-class Layout():     
-    def __init__(self, master, **kw):              
-        self.master = master
-        self.root = master.winfo_toplevel()   
-        self.tk = master.tk     
-        self.pack(fill='both', expand=True)   
-        
-    def pack(self, **kw):
-        pass
-        
-    def add_set1(self, SideFrame=None, TextClass=None):              
-        add_menu(master) 
-        textbox, msg = add_textmsg(frameLR.right, TextClass)    
-        if SideFrame == None:
-            filetree = add_filetree(frameLR.left)
-            filetree.click_select = 'click' 
-            filetree.msg = msg
-            master.filetree = sideframe = filetree
-        else:
-            sideframe = SideFrame(frameLR.left)
-            sideframe.pack(fill='both', expand=True)
-        p = textbox, msg, sideframe
-        master.textbox, master.msg, master.sideframe= p    
-        return p 
-    
+
 if __name__ == '__main__':
     def test_frame(title='Test', size=(900, 900)):
-        from aui import App, Panel
+        from aui import App, Panel, Layout
         app = App(title, size)     
-        frame = Layout(app)
-        #frame.add_set1()
+        
+        app.add_set1()
         #app.textbox.open(__file__)
         #frame = app.twoframe(app, 'right', 32/800)
         #panel = Panel(frame.left)

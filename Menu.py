@@ -42,7 +42,7 @@ class LabelEntry():
             label = tk.Label(master, text=label, bg='#232323', fg='white', font=(14))
             label.pack(side='left', padx=5)
         self.entry = tk.Entry(master, **kw)    
-        self.entry.pack(side='left', fill='x', expand=True, padx=5)
+        self.entry.pack(side='left', fill='x', expand=False, padx=5)
             
     def add_button(self, *data):
         text, action = data
@@ -60,9 +60,8 @@ class LabelEntry():
         entry.insert(0, text)       
         
          
-def add_entry(frame, label=None, button=None):                      
-    entry = LabelEntry(frame, label=label)
-    entry.set('test')
+def add_entry(frame, label=None, button=None, **kw):                      
+    entry = LabelEntry(frame, label=label, **kw)
     if button != None:
         entry.add_button(button)   
     return entry
@@ -283,7 +282,7 @@ class Panel():
         if items != None:
             self.add_buttons(items, style=style)
         
-    def add_scrollbar(self, frame):
+    def add_scrollbar(self):
         from aui.aui_ui import ScrollBar
         self.scrollbar = ScrollBar(self.base)        
 

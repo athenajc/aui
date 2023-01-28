@@ -15,7 +15,7 @@ from .fileio import *
 
 from .app import *
 from .ImageGrid import *
-from .runfile import RunFile, TestFrame
+from .runfile import RunFile, TestFrame, RunServer
 from .Layout import Layout
 
 def realpath(path):
