@@ -85,7 +85,7 @@ class dbSelector(tk.Frame, SelectDB):
         self.bg = self.cget('bg')
         self.fg = self.cget('highlightcolor')
         self.config(borderwidth=3)
-        
+        self.editor = None
         self.root = self.winfo_toplevel()
         self.cdb = DB.open(name)
         self.name = name
@@ -201,7 +201,8 @@ class dbSelector(tk.Frame, SelectDB):
         self.msg.set_text(info + '\n')
         self.root.title(info)
         text = self.table.getdata(key)
-         
+        if self.editor != None:
+            self.editor.set_item(self.table, key, item)    
         if 'select' in self.actions:
             act = self.actions['select']
             act(key, text)     
