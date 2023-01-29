@@ -76,7 +76,7 @@ class SelectDB():
                          
         
 class dbSelector(tk.Frame, SelectDB):     
-    def __init__(self, master, name='code', **kw):       
+    def __init__(self, master, name='code', table=None, **kw):       
         super().__init__(master, **kw)
         self.size = master.size
         self.app = self
@@ -90,14 +90,16 @@ class dbSelector(tk.Frame, SelectDB):
         self.cdb = DB.open(name)
         self.name = name
         tables = self.cdb.get('tables')
-        self.table = None
+        self.table = table
         self.vars = {'history':[]}
         self.data = []
         self.tree_item = ''
          
         self.init_ui()      
         self.panel.set_db(name)
-        if tables != None and len(tables) > 1: 
+        if self.table != None:
+           self.switch_table(table)  
+        elif tables != None and len(tables) > 1: 
            self.switch_table(tables[0]) 
         self.actions = {}   
           
@@ -119,6 +121,8 @@ class dbSelector(tk.Frame, SelectDB):
             b.config(width=7, relief='flat')
     
     def update_all(self):
+        if self.table == None:
+            return
         self.item_names = names = self.table.getnames()        
         self.tree.set_list(names)
         table_name = self.table.name
@@ -194,8 +198,13 @@ class dbSelector(tk.Frame, SelectDB):
     def update_item(self, key, item):
         data = (self.table.name, key, item)
         info = str(data)
-        self.msg.set_text(info)
+        self.msg.set_text(info + '\n')
         self.root.title(info)
+        text = self.table.getdata(key)
+         
+        if 'select' in self.actions:
+            act = self.actions['select']
+            act(key, text)     
         
     def on_select(self, event=None):         
         item = self.tree.focus() 
@@ -203,9 +212,8 @@ class dbSelector(tk.Frame, SelectDB):
         dct = self.tree.item(item)
         key = dct.get('text')           
         self.update_item(key, item)
-        if 'select' in self.actions:
-            act = self.actions['select']
-            act(key)        
+        
+           
         
     def on_rename_item(self, event=None):
         p = event.widget.getvar('<<RenameItem>>')
@@ -239,7 +247,7 @@ class dbSelector(tk.Frame, SelectDB):
        
 def run(name):    
     app = App('DB Table Selector', size=(500, 900))    
-    frame = dbSelector(app, name)
+    frame = dbSelector(app, 'note', 'Graph')
     frame.pack(fill='both', expand=True)
     app.mainloop()   
             
