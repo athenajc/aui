@@ -266,17 +266,18 @@ class MenuBar(tk.Frame):
         self.button[item].bind('<ButtonRelease-1>', action) 
          
          
-class Panel():
+class Panel(tk.Text):
     def __init__(self, master, style='h', items=None, size=None, **kw):
+        super().__init__(master, kw)
         self.size = size
         self.style = style
         self.relief = 'flat'
         self.master = master
         
-        self.base = obj = tk.Text(master, cursor='arrow', **kw)
-        obj.config(background = master.cget('background'))
-        obj.config(state= "disabled", font=('Mono', 20))
-        self.place = self.base.place
+        self.base = self
+        self.config(background = master.cget('background'))
+        self.config(state= "disabled", font=('Mono', 20))
+
         self.widgets = []
         self.limit = 1000
         if items != None:
@@ -284,7 +285,7 @@ class Panel():
         
     def add_scrollbar(self):
         from aui.aui_ui import ScrollBar
-        self.scrollbar = ScrollBar(self.base)        
+        self.scrollbar = ScrollBar(self)        
 
     def reset(self):        
         self.base.delete('1.0', 'end')
@@ -298,16 +299,16 @@ class Panel():
             text += str(s) + ' '
         if len(text) > self.limit:
             text = text[0:self.limit]    
-        obj = self.base    
+        obj = self    
         obj.config(state= "normal")
         obj.insert('end', text + end)
         obj.config(state= "disabled")
         
     def add_space(self, n = 1):
         if self.style == 'h':
-            obj = tk.Label(self.base, text='', height=n)
+            obj = tk.Label(self, text='', height=n)
         else:
-            obj = tk.Label(self.base, text='', width=n)
+            obj = tk.Label(self, text='', width=n)
         self.add(obj)        
         
     def add_sep(self):
@@ -317,54 +318,51 @@ class Panel():
             w, h = 100, 50
             
         if self.style == 'v':
-            sep = add_sep(self.base, w, 1, pady=15)
+            sep = add_sep(self, w, 1, pady=15)
             self.add(sep)   
         else:
             self.add_space(1) 
-            sep = add_sep(self.base, 1, h)
+            sep = add_sep(self, 1, h)
             self.add(sep)   
-            self.add_space(1) 
-        
-    def pack(self, **kw):
-        self.base.pack(**kw)
-        
-    def insert(self, index, widget):        
+            self.add_space(1)         
+       
+    def insert_widget(self, index, widget):        
         if type(widget) == str:
-            self.base.insert('end', widget)
+            self.insert('end', widget)
         else:
             self.widgets.append(widget)
-            self.base.window_create(index, window=widget)
+            self.window_create(index, window=widget)
         
     def add(self, widget):
         if type(widget) == list:
             for obj in widget:
-                self.base.insert('end', obj)
+                self.insert_widget('end', obj)
         elif type(widget) == str:
-            self.base.insert('end', widget)
-        else:     
             self.insert('end', widget)
+        else:     
+            self.insert_widget('end', widget)
         if self.style == 'v':
             self.insert('end', '\n')
         
     def add_combo(self, text='', values=[]):
-        add_combo(self.base, text, values)
+        add_combo(self, text, values)
         self.add(combo)
         return combo
         
     def add_label(self, text, **kw):
-        label = tk.Label(self.base, text=text, **kw)    
+        label = tk.Label(self, text=text, **kw)    
         self.add(label)
         return label
         
     def add_textvar(self):       
         textvar = tk.StringVar()
-        label = tk.Label(self.base, textvariable=textvar, padx=20)
+        label = tk.Label(self, textvariable=textvar, padx=20)
         label.textvar = textvar
         self.add(label)         
         return label
         
     def add_button(self, name, action=None):
-        button = Button(self.base, text=name, action=action)
+        button = Button(self, text=name, action=action)
         if self.style == 'v':
             button.config(width=12, relief='flat')
             button.pack(fill='x')
@@ -384,7 +382,7 @@ class Panel():
         return lst
         
     def add_entry(self, label=None, button=None):   
-        entry = add_entry(self.base, label, button)
+        entry = add_entry(self, label, button)
         self.add(entry)
 
 #----------------------------------------------------------------------------------      
@@ -417,7 +415,7 @@ if __name__ == '__main__':
         panel = Panel(frame1.left, items=items, style=style, size=(w, h)) 
         
         panel.pack(fill='y', expand=False)
-        panel.add_scrollbar(frame1.right)   
+        panel.add_scrollbar()   
         frame.mainloop()  
                  
     def test_scrollbar():
@@ -426,11 +424,11 @@ if __name__ == '__main__':
         panel = Panel(app, size=(960, 860))
         #panel.base.config(width=960//16)
         panel.pack(side='left', fill='both', expand=True)
-        panel.add_scrollbar(app)       
+        panel.add_scrollbar()       
         panel.puts('Reset,Open,,Close,,History,,Save,Save as,,Undo,Redo,,Copy,Cut,Paste,,')
         app.mainloop()    
         
     test_scrollbar()
-    #test_menubar('v')
+    test_menubar('v')
 
 

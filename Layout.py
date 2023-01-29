@@ -15,30 +15,14 @@ def get_box( box):
             lst.append(v)                        
     return lst
     
-class SpliterVarV():
-    def __init__(self, master, sepvar, box, yrange=(0.1, 0.9)):
-        self.master = master
-        self.layout = master.layout
-        spliter = tk.Frame(master, relief='raise', bd=2)
-        spliter.config(cursor='hand2')
-        spliter.bind('<B1-Motion>', self.drag_v)
-        self.spliter = spliter
+class SpliterVarV(tk.Frame):
+    def __init__(self, layout, sepvar, yrange=(0.1, 0.9)):
+        super().__init__(layout.master, relief='raise', bd=2, bg='white')
+        self.layout = layout
+        self.config(cursor='hand2')
+        self.bind('<B1-Motion>', self.drag_v)
         self.sepvar = sepvar  
-        self.box = box
-        self.yrange = yrange
-        self.set_place(sepvar.get())        
-        for v in self.box:
-            if type(v) == tk.DoubleVar:
-                v.trace('w', self.on_trace)        
-
-    def set_place(self, yvar):
-        x, y, w, h = get_box(self.box)
-        x += 0.01
-        self.spliter.place(relx=x, rely=yvar, relwidth=w-x, height=8)  
-                 
-    def on_trace(self, *event):
-        yvar = self.sepvar.get()        
-        self.set_place(yvar)                  
+        self.yrange = yrange 
         
     def drag_v(self, event):
         obj = event.widget
@@ -51,49 +35,33 @@ class SpliterVarV():
         elif obj_y > y2:
             obj_y = y2           
         y1 = obj_y + (8 / h) 
-        self.set_place(obj_y)
-        self.sepvar.set(obj_y)       
+        self.sepvar.set(obj_y)   
+        self.layout.update_objs()    
 
 
-class SpliterVarH():
-    def __init__(self, master, sepvar, box, xrange=(0.1, 0.9)):
-        self.master = master
-        self.layout = master.layout
-        spliter = tk.Frame(master, relief='raise', bd=2)
-        spliter.config(cursor='hand2')
-        spliter.bind('<B1-Motion>', self.drag_h)
-        self.spliter = spliter
+class SpliterVarH(tk.Frame):
+    def __init__(self, layout, sepvar, xrange=(0.1, 0.9)):
+        super().__init__(layout.master, relief='raise', bd=2)
+        self.layout = layout
+        self.config(cursor='hand2')        
         self.sepvar = sepvar  
-        self.box = box        
         self.xrange = xrange
-        self.set_pos(self.sepvar.get())       
-        for v in self.box:
-            if type(v) == tk.DoubleVar:
-                v.trace('w', self.on_trace)   
+        self.bind('<B1-Motion>', self.drag_h)
             
-    def set_pos(self, xsep):
-        x, y, w, h = get_box(self.box)
-        dw = w/self.layout.size[0]
-        x1, x2 = self.xrange
-        relx = xsep    
-        self.spliter.place(relx=xsep, rely=y, width=8, relheight=h-y)
-        
-    def on_trace(self, *event):    
-        xsep = self.sepvar.get()
-        self.set_pos(xsep)
-        
+       
     def drag_h(self, event):        
         x1, x2 = self.xrange
         obj = event.widget
         obj_x = self.sepvar.get()
         x = event.x
-        dw = (abs(x)  / self.master.size[0]) /3
+        dw = (abs(x)  / self.layout.size[0]) /3
         if x < -1 and obj_x > x1:
             obj_x -= dw
         elif x > 1 and obj_x < x2:
-            obj_x += dw         
-        self.set_pos(obj_x)    
+            obj_x += dw    
+        
         self.sepvar.set(obj_x)     
+        self.layout.update_objs() 
                 
          
 class AuiObj():
@@ -133,36 +101,85 @@ class AuiObj():
         return menubar
         
 
+class CanvasPanel(tk.Canvas):
+    def __init__(self, master, **kw):
+        super().__init__(master, **kw)
+        self.master = master
+        self.config(background = "#d9d9d9")
+        self.objs = []
+        self.pos = 0, 0
+        self.set_region(h=1000)   
+        #self.add_scrollbar()        
+        
+    def add(self, obj, tag='obj', box=None):
+        if box != None:
+            x, y, x1, y1 = box
+            item = self.create_window(x, y, window=obj, anchor='nw', tag=tag)
+            self.itemconfig(item, width=x1-x, height=y1-y)
+        else:    
+            x, y = self.pos
+            item = self.create_window(5, y+10, window=obj, anchor='nw', tag=tag)
+        self.update()
+        self.objs.append(obj)
+        x0, y0, x1, y1 = self.bbox(item)
+        self.pos = 0, y1      
+        if y1 > self.h:  
+           self.set_region(y1+50)
+            
+    def add_scrollbar(self):
+        from aui.aui_ui import ScrollBar
+        self.scrollbar = ScrollBar(self)        
+
+    def reset(self):        
+        for item in self.find_all():
+            self.delete(item)
+        for obj in self.objs:
+            obj.destroy()
+        self.y = 0
+        self.objs = []
+        self.set_region(500)
+        
+    def set_region(self, h):
+        self.h = h    
+        self.config(scrollregion = (0,0,800, h))
+
 class Layout(AuiObj):     
     def __init__(self, master, **kw):              
         self.master = master
-        master.layout = self
         self.root = master.winfo_toplevel()           
         self.tk = master.tk     
         self.objs = []
         self.seps = {}
-        self.left, self.top = 0, 0
         w, h = master.winfo_width(), master.winfo_height()
-        self.size = self.root.size
-        top = self.add_sepvar(value=0, name='top')
-        left = self.add_sepvar(value=0, name='left')
-        bottom = self.add_sepvar(value=1, name='bottom')
-        right = self.add_sepvar(value=1, name='right')   
-        self.box = left, top, right, bottom 
-        master.bind('<Configure>', self.on_config_master)
+        self.vars = dict(left=0, top=0, right=1, bottom=1, w8=8/w, h8=8/h)        
+        self.left, self.top = 0, 0
+        
+        self.size = self.root.size        
+        self.w, self.h = w, h
+        self.box = 0, 0, 1, 1 
+        master.bind('<Configure>', self.on_config_master)        
         
     def on_config_master(self, event):
         w = event.width
         h = event.height
-        self.set_sep('left', self.left/w)
-        self.set_sep('top', self.top/h)
-        self.size = w, h        
+        self.vars['left'] = self.left/w
+        self.vars['top'] = self.top/h
+        self.vars['w8'] = 8/w
+        self.vars['h8'] = 8/h
+        self.size = w, h      
+        self.w, self.h = w, h
         self.update_objs()
         
     def pack(self, **kw):
         pass        
         
-    def getvalue(self, v):
+    def get_value(self, v):            
+        if type(v) == float:
+            return v
+        elif v in self.seps:                
+            return self.get_sep(v)
+        elif v in self.vars:
+            return self.vars.get(v, 0)
         if type(v) == tk.DoubleVar:
             return v.get()
         else:
@@ -172,19 +189,35 @@ class Layout(AuiObj):
         if not widget in self.objs:   
             widget.box = box
             self.objs.append(widget)
-            self.place_obj(widget)    
+            self.place_obj(widget)            
+  
+    def get_box(self, box):
+        lst = []        
+        for item in box:
+            t = type(item)
+            if t == float:
+                v = item
+            elif t == str and '+' in item: 
+                a, b = item.split('+')
+                a = self.get_value(a)
+                b = self.get_value(b)
+                v = a + b
+            else:
+                v = self.get_value(item)
+            lst.append(v)
+        return lst
         
     def place_obj(self, obj):        
-        x, y, w, h = get_box(obj.box)        
-        x += 6/self.size[0]
+        x, y, w, h = self.get_box(obj.box)        
+        #x += 6/self.size[0]
         if x > 1:
             x = x/self.size[0]
         if y > 1:
-            y = y/self.size[1]            
-      
+            y = y/self.size[1]       
         obj.place(relx=x, rely=y, relwidth=w-x, relheight=h-y) 
            
-    def update_objs(self):         
+    def update_objs(self):       
+        w, h = self.size
         for obj in self.objs:
             self.place_obj(obj) 
            
@@ -202,7 +235,7 @@ class Layout(AuiObj):
         
     def add_sepvar(self, value, name):
         obj = tk.DoubleVar(value=value, name=name)
-        obj.trace('w', self.update_sep)  
+        #obj.trace('w', self.update_sep)  
         self.seps[name] = obj
         return obj
         
@@ -210,132 +243,105 @@ class Layout(AuiObj):
         x, y = self.left, self.top
         obj.place(x=x, y=y, width=w, relheight=1)
         self.left += w
-        self.set_sep('left', self.left/self.size[0])        
+        self.vars['left'] = self.left/self.size[0]   
+        left, top, right, bottom = self.box           
+        self.box = 'left', top, right, bottom     
         
     def add_top(self, obj, h=32):
         x, y = self.left, self.top
         obj.place(x=x, y=y, relwidth=1, height=h)
-        self.top += h
-        self.set_sep('top', self.top/self.size[1])        
+        self.top += h        
+        self.vars['top'] = self.top/self.size[1]    
+        left, top, right, bottom = self.box           
+        self.box = left, 'top', right, bottom
 
-    def add_H3(self, objs=(), sep=(0.2, 0.75), box=None):
+    def add_xsep(self, sep=0.5, xrange=(0.25, 0.75), box=None):
         if box == None:
             box = self.box
         left, top, right, bottom = box
-        x1, x2 = sep
-        sep1 = self.add_sepvar(value=x1, name='h1')
-        sep2 = self.add_sepvar(value=x2, name='h2')
-        y, h = left, bottom
-        split1 = SpliterVarH(self.master, sep1, box=(x1, y, 8, h), xrange=(0.1, 0.5))  
-        split2 = SpliterVarH(self.master, sep2, box=(x2, y, 8, h), xrange=(0.35, 0.95))
-        f0, f1, f2 = objs
-        self.add(f0, box=(left, top, sep1, bottom))
-        self.add(f1, box=(sep1, top, sep2, bottom))       
-        self.add(f2, box=(sep2, top, right, bottom)) 
-
+        xsep = 'xsep' + str(sep)
+        sepvar = self.add_sepvar(value=sep, name=xsep)
+        splith = SpliterVarH(self, sepvar, xrange=xrange)  
+        self.add(splith, box=(xsep, top, xsep+'+w8', bottom))
+        return xsep        
+        
+    def add_ysep(self, sep=0.5, yrange=(0.2, 0.9), box=None):
+        if box == None:
+            box = self.box
+        left, top, right, bottom = box
+        ysep = 'ysep' + str(sep)        
+        sepvar = self.add_sepvar(value=sep, name=ysep)                      
+        splitv = SpliterVarV(self, sepvar, yrange=yrange)    
+        self.add(splitv, box=(left, ysep, right, ysep + '+h8'))
+        return ysep        
+        
     def add_H2(self, f0, f1, sep=0.5, xrange=(0.25, 0.75), box=None):
         if box == None:
             box = self.box
         left, top, right, bottom = box
-        xsep = self.add_sepvar(value=sep, name='h2')
-        split1 = SpliterVarH(self.master, xsep, box=(sep, top, 8, bottom), xrange=xrange)  
+        xsep = self.add_xsep(sep, xrange=xrange, box=box)
         self.add(f0, box=(left, top, xsep, bottom))
-        self.add(f1, box=(xsep, top, right, bottom))
+        self.add(f1, box=(xsep+'+w8', top, right, bottom))
         
     def add_V2(self, f0, f1, sep=0.5, yrange=(0.2, 0.9), box=None):
         if box == None:
             box = self.box
         left, top, right, bottom = box
-        sepv = self.add_sepvar(value=sep, name='v2')
-        spliter = SpliterVarV(self.master, sepv, (left, sep, right, 8), yrange=yrange)    
-        self.add(f0, box=(left, top, right, sepv))
-        self.add(f1, box=(left, sepv, right, bottom))
-
-    def add_set1(self, objs=(), seph=0.2, sepv=0.7, box=None):            
-        if box == None:
-            box = self.box
-        left, top, right, bottom = box     
-        sep1 = self.add_sepvar(value=seph, name='1')        
-        tree, f0, f1 = objs
-        self.add(tree, (left, top, sep1, bottom))
-        self.add_V2(f0, f1, sepv, (0.2, 0.95), box=(sep1, top, right, bottom))
-        split1 = SpliterVarH(self.master, sep1, box=(left, top, 8, bottom), xrange=(0.12, 0.6))     
-    
-    def add_setH(self, objs=(), seph=(0.2, 0.75), sepv=0.6, box=None):   
+        ysep = self.add_ysep(sep, yrange, box)  
+        self.add(f0, box=(left, top, right, ysep))
+        self.add(f1, box=(left, ysep + '+h8', right, bottom))  
+        
+    def add_H3(self, f0, f1, f2, sep=(0.2, 0.75), box=None):
         if box == None:
             box = self.box
         left, top, right, bottom = box
-        x1, x2 = seph
-        sep1 = self.add_sepvar(value=x1, name='h1')
-        sep2 = self.add_sepvar(value=x2, name='h2')
-        y, h = top, bottom
-        split1 = SpliterVarH(self.master, sep1, box=(x1, y, 8, h), xrange=(0.1, 0.5))  
-        split2 = SpliterVarH(self.master, sep2, box=(x2, y, 8, h), xrange=(0.35, 0.95))
-        sepv1 = self.add_sepvar(value=sepv, name='v2')
-        spliter = SpliterVarV(self.master, sepv1, (sep1, sepv, sep2, 8), yrange=(0.2, 0.9))  
-        f0, f1, f2 = objs
-        f1a, f1b = f1
-        self.add(f0, box=(left, top, sep1, bottom))
-        self.add(f1a, box=(sep1, top, sep2, sepv1))       
-        self.add(f1b, box=(sep1, sepv1, sep2, bottom))       
-        self.add(f2, box=(sep2, top, right, bottom))      
+        sep1, sep2 = sep
+        xsep1 = self.add_xsep(sep1, xrange=(0.11, 0.5), box=box)
+        xsep2 = self.add_xsep(sep2, xrange=(0.55, 0.9), box=box)   
+        self.add(f0, box=(left, top, xsep1, bottom))
+        self.add(f1, box=(xsep1+'+w8', top, xsep2, bottom))       
+        self.add(f2, box=(xsep2+'+w8', top, right, bottom)) 
         
-    def add_set2(self, objs=(), seph=(0.25, 0.625), sepv=0.7, box=None):            
+    def add_HV(self, f0, f1, f2, sep=(0.3, 0.7), xrange=(0.1, 0.8), yrange=(0.2, 0.9), box=None):
         if box == None:
             box = self.box
-        left, top, right, bottom = box     
-        x1, x2 = seph
-        sep1 = self.add_sepvar(value=x1, name='h1')
-        sep2 = self.add_sepvar(value=x2, name='h2')   
-        sepv1 = self.add_sepvar(value=sepv, name='v2') 
-        tree, f0, f1, msg = objs
-        self.add(tree, (left, top, sep1, bottom))
-        
-        split1 = SpliterVarH(self.master, sep1, box=(left, top, 8, bottom), xrange=(0.12, 0.6))  
-        split2 = SpliterVarH(self.master, sep2, box=(x2, top, 8, sepv1), xrange=(0.35, 0.95))
-        spliter = SpliterVarV(self.master, sepv1, (sep1, sepv, right, 8), yrange=(0.2, 0.9))  
+        left, top, right, bottom = box
+        sep1, sep2 = sep        
+        xsep = self.add_xsep(sep1, xrange, box)
+        ysep = self.add_ysep(sep2, yrange, box=(xsep+'+w8', top, right, bottom))     
+        self.add(f0, box=(left, top, xsep, bottom))
+        self.add(f1, box=(xsep+'+w8', top, right, ysep))
+        self.add(f2, box=(xsep+'+w8', ysep + '+h8', right, bottom)) 
 
-        self.add(tree, box=(left, top, sep1, bottom))
-        self.add(f0, box=(sep1, top, sep2, sepv1))       
-        self.add(f1, box=(sep2, top, right, sepv1))       
-        self.add(msg, box=(sep1, sepv1, right, bottom))  
-        
+    def add_set1(self, objs=(), seph=0.2, sepv=0.7, box=None):            
+        f0, f1, f2 = objs
+        sep = (seph, sepv)
+        self.add_HV(f0, f1, f2, sep, box)    
+    
+    def add_box(self, frame, box=None):
+        if box == None:
+            box = self.box
+        self.add(frame, box=box)        
 
 if __name__ == '__main__':
     from aui import App, Panel    
     app = App(title='Test', size=(1100, 900))   
     layout = Layout(app)
-    f0 = app.textbox = Text(app)
-    f0.init_dark_config()
-    f1 = app.canvas = tk.Canvas(app)
-    msg = app.msg = layout.add_msg(app)    
-    tree = app.tree = FileTreeView(app)
-    tree1 = app.tree1 = TreeView(app)
 
-    def test_add_left_top():        
-        menu = layout.add_menu(app)
-        layout.add_left(menu, 100)
-        frame = tk.Frame(app, bg='#333')
-        layout.add_top(frame, 32)  
-        frame1 = tk.Frame(app, bg='gray')
-        layout.add_top(frame1, 32) 
-        
-    def test_H2():    
-        layout.add_H2(f0, f1, 0.6, (0.2, 0.9)) 
-        
-    def test_V2():    
-        layout.add_V2(f0, f1, 0.6, (0.2, 0.9))         
-       
-    def test_puts():
-        app.textbox.open(__file__)
-        for i in range(100):
-            app.msg.puts(i, ' ' * 10, i)
-        
-    test_add_left_top()       
-    #layout.add_H3(objs=(tree, f0, f1))
-    #test_V2()
-    layout.add_set2(objs=(tree, f0, f1, msg))
-    test_puts()
+    f1 = tk.Text(app, bg='#aaa')
+    f2 = tk.Text(app, bg='white')
+    f3 = tk.Frame(app, bg='lightblue')
+    
+    ftop = tk.Frame(app, bg='gray')    
+    layout.add_top(ftop, 60)
+    fleft = tk.Frame(app, bg='lightgray')    
+    layout.add_left(fleft, 100)
+    
+    layout.add_HV(f1, f2, f3)
+    f1.insert('1.0', 'layout.add_V2(f1, f2, 0.6, (0.2, 0.9)) ')
+    f2.insert('1.0', 'F2 f2 = tk.Text(app, bg=white)')
+    #layout.add_H3(f1, f2, f3) 
+
     app.mainloop()
 
 

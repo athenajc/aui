@@ -104,6 +104,12 @@ def add_filetree(master):
     tree.tk.setvar('filetree', tree)   
     return tree
     
+def add_tree(master):
+    tree = TreeView(master)
+    tree.pack(fill='both', expand=True)
+    tree.tk.setvar('tree', tree)   
+    return tree
+    
 def add_menu(master):
     frame = twoframe(master, style='h', sep=0.05)
     frame.pack(side='left', fill='both', expand=False)
