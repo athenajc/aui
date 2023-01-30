@@ -668,14 +668,28 @@ class TextUtils(PopMenu, TextSearch, TextTag, TextTab):
         self.bind('<KeyRelease>', self.on_keyup)  
         self.bind('<Control-v>', self.on_key_v)               
         
+    def init_code_editor(self):
+        self.vars = {}
+        self.text = None       
+        self.msg = self
+        self.config(foreground='#121')
+        self.config(background='#f5f5f3')    
+        self.tag_config('bold', font=('bold'), background='#ddd')       
+        keys = 'from|import|def|class|if|else|elif|for|in|then|dict|list|continue|return'
+        keys += '|None|True|False|while|break|pass|with|as|try|except|not|or|and|do|const|local'
+        self.keywords = keys.split('|')
+        self.init_config()        
+        self.init_pattern()   
 
         
 class TextObj(tk.Text, TextUtils):
-    def __init__(self, master, **kw):
+    def __init__(self, master, scroll=True, fill=True, **kw):
         super().__init__(master, **kw)
-        self.init_all()        
-        self.add_scrollbar(self.master)   
-        self.place(x=0, y=0, relwidth=1, relheight=1)     
+        self.init_all()               
+        if fill == True:
+           self.place(x=0, y=0, relwidth=1, relheight=1) 
+        if scroll == True:
+           self.add_scrollbar(self.master)               
         #self.bind('<Configure>', self.on_config)
         
     def add_scrollbar(self, frame):
@@ -689,19 +703,10 @@ class TextObj(tk.Text, TextUtils):
 
         
 class Text(TextObj):
-    def __init__(self, master, **kw):
-        super().__init__(master, **kw)
-        self.vars = {}
-        self.text = None       
-        self.msg = self
-        self.config(foreground='#121')
-        self.config(background='#f5f5f3')    
-        self.tag_config('bold', font=('bold'), background='#ddd')       
-        keys = 'from|import|def|class|if|else|elif|for|in|then|dict|list|continue|return'
-        keys += '|None|True|False|while|break|pass|with|as|try|except|not|or|and|do|const|local'
-        self.keywords = keys.split('|')
-        self.init_config()        
-        self.init_pattern()    
+    def __init__(self, master, scroll=True, fill=True, **kw):
+        super().__init__(master, scroll, fill, **kw)
+        self.init_code_editor()
+ 
 
 
 class TextEntry(tk.Text, TextUtils):
