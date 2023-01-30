@@ -369,6 +369,8 @@ from tkinter.messagebox import showinfo
 filetypes = {
     'py': ('Python files', '*.py, *.txt'),
     'txt': ('Text files', '*.txt, *.py'),
+    'img': ('Image files', '*.png *.svg *.jpg'),
+    'image': ('Image files', '*.png *.svg *.jpg'),
     'all': ('All files', '*.*'),
     '*': ('All files', '*.*') 
 }    
@@ -382,6 +384,9 @@ def get_filetypes(ext):
 
 def askopenfile(title='Open a file', path='/link', ext='py'):          
     return fd.askopenfile(title=title, initialdir=path, filetypes=get_filetypes(ext))
+    
+def askopenfilename(title='Open an image', path='/link', ext='img'):          
+    return fd.askopenfilename(title=title, initialdir=path, filetypes=get_filetypes(ext))
             
 def askopenfiles(title='Open files', path='/link', ext='py'):          
     return fd.askopenfiles(title=title, initialdir=path, filetypes=get_filetypes(ext))

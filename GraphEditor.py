@@ -1,6 +1,7 @@
 #! /usr/bin/python3.8
 import os
 import sys
+import re
 import tkinter as tk
 from tkinter import ttk
 from tkinter import colorchooser
@@ -13,7 +14,9 @@ from matplotlib import patches, transforms, bezier
 from shapely.geometry import polygon, linestring
 from PIL import ImageFont
 from aui import ImageObj
+from aui import askopenfilename
 
+    
 def curve(points, steps=0.05):
     a = np.array(points)
     t_points = np.arange(0, 1+ steps, steps)    
@@ -31,6 +34,7 @@ def simplify(points):
 class Editor(tk.Frame):
     def __init__(self, master, **kw):       
         super().__init__(master, **kw)
+        self.root = master.winfo_toplevel()
         self.config(padx=10)
         self.tree_item = None
         frame = tk.Frame(self)
@@ -63,7 +67,7 @@ class Editor(tk.Frame):
         entry.add_button('commit', self.on_commit)               
         entry.set('test')
         self.entry = entry
-        entry.add_button('Redraw Canvas', self.on_redraw_canvas)
+        entry.add_button('To Canvas', self.to_canvas)
             
     def set_text(self, text):
         text = text.strip()
@@ -130,20 +134,25 @@ class Editor(tk.Frame):
         self.master.setvar('<<RenameItem>>', (self.tree_item, newkey))
         self.master.event_generate('<<RenameItem>>')  
         
-    def on_redraw_canvas(self, event=None):
-        pass
-        
+    def to_canvas(self, event=None):       
+        canvas = self.root.canvas 
+        text = self.text.get_text()
+        for m in re.finditer('Graph\s*\=\s*\[{', text):
+            i = m.end()
+            j = text.find('}]', i)
+            text = text[i:j].replace('[{', '').replace('}]', '')            
+            canvas.puts_data(text)            
+             
 
 class Obj():
-    def __init__(self, canvas, item, mode, box, **kw):    
+    def __init__(self, canvas, tag, mode, box, **kw):    
         self.canvas = canvas
         self.mode = mode
-        self.canvas_item = item
+        self.tag = tag
         self.data = kw
         self.box = box
         self.size = 100, 50
         for item in self.data:
-            print(item, self.data[item])
             self.__setattr__(item, self.data[item])
          
         if box == None:
@@ -151,10 +160,10 @@ class Obj():
         x1, y1, x2, y2 = box    
         w = x2 - x1
         h = y2 - y1
-        self.size = w, h
-        
+        self.size = w, h        
+                
     def update(self):
-        box = self.canvas.bbox(self.canvas_item)
+        box = self.canvas.bbox(self.tag)
         if box == None:
             return
         x1, y1, x2, y2 = box  
@@ -163,11 +172,11 @@ class Obj():
     def set_color(self, color):    
         self.data['color'] = color
         self.color = color
-        self.canvas.itemconfig(self.canvas_item, fill=color)
+        self.canvas.itemconfig(self.tag, fill=color)
         
     def moveto(self, xy):
         x, y = xy
-        self.canvas.moveto(self.canvas_item, x=x, y=y)
+        self.canvas.moveto(self.tag, x=x, y=y)
                 
 
 class SelectFrame():
@@ -186,7 +195,7 @@ class SelectFrame():
         
     def set_rect(self, pos, size):
         canvas = self.canvas
-        x, y = pos    
+        x, y = pos[0:2]    
         w, h = size        
         x1, y1 = x+w, y+h
         x2, y2 = x+w/2, y+h/2
@@ -224,7 +233,7 @@ class SelectFrame():
             self.size = w,h
         else:                  
             self.pos = x, y
-            self.canvas.moveto(self.obj.canvas_item, x=x, y=y)
+            self.canvas.moveto(self.obj.tag, x=x, y=y)
         
         self.set_rect(self.pos, self.size)
         
@@ -233,7 +242,7 @@ class SelectFrame():
         obj = self.obj
         x, y = self.pos
         obj.moveto(self.pos)
-        item = obj.canvas_item
+        item = obj.tag
         self.canvas.config(cursor='arrow')
         #self.canvas.scale(item, w, h, w1/w, h1/w)
         #self.canvas.moveto(item, x=x, y=y)
@@ -259,8 +268,9 @@ class SelectFrame():
 class ImageCanvas(tk.Canvas):
     def __init__(self, master, **kw):
         tk.Canvas.__init__(self, master, **kw)  
-        self.mode = 'move'
-        self.text = 'test draw 中文 text'
+        self.root = master.winfo_toplevel()
+        self.mode = 'text'
+        self.text = '紅塵-黃-綠-藍-電子'
         self.font = ('Mono', 20)
         self.fontname = '/home/athena/data/ttf/ChinSong1.ttf'
         #self.font = (self.fontname, 16)
@@ -276,13 +286,12 @@ class ImageCanvas(tk.Canvas):
         self.points = []
         self.data = []
         self.selectframe = SelectFrame(self)
-        self.add_text_item(200, 200, self.text)
-        self.add_text_item(300, 300, self.text)
+        #self.add_text_item(200, 200, self.text)
         self.set_mode(self.mode)        
         
     def clear(self, event=None):
         for obj in self.objs:            
-           self.delete(obj.item)
+           self.delete(obj.tag)
         self.item_obj_map = {}
         self.objs = []
         self.modified = []     
@@ -377,11 +386,6 @@ class ImageCanvas(tk.Canvas):
         x, y = event.x, event.y     
         self.pos = x, y
         self.points = [(x, y)]        
-            
-    def puts_item(self, mode, **kw):
-        self.data.append((mode, kw))
-        self.editor.puts(mode + '=' + str(kw))
-        return kw
         
     def get_verts_box(self, verts):   
         x, y = np.transpose(np.array(verts))
@@ -389,31 +393,37 @@ class ImageCanvas(tk.Canvas):
         top, bottom = np.min(y)-1, np.max(y)+1
         return left, top, right, bottom
         
-    def draw_line_points(self, tag, points):         
+    def draw_line_points(self, tag, points, color):         
         verts = curve(points, steps=0.01)
         x0, y0 = verts[0]
         lst = []
         for x, y in verts[1:]:
-            item = self.create_line((x0, y0, x, y), fill=self.color, width = self.lw, tag=('pen', tag))   
+            item = self.create_line((x0, y0, x, y), fill=color, width = self.lw, tag=('pen', tag))   
             lst.append(item)
             x0, y0 = x, y
         return lst    
             
-    def add_pen_item(self, x, y):           
-        self.points.append((x, y))
-        verts = simplify(self.points[1:-2])     
+    def draw_pen(self, points, color=None):
+        if color == None:
+            color = self.color
         self.delete('drawpen')        
         tag = 'pen' + str(self.index)
         self.index += 1
         
         box = self.get_verts_box(points)
-        obj = Obj(self, tag, 'pen', box, verts=points, color=color)
+        obj = Obj(self, tag, 'pen', box, points=points, color=color)
         self.objs.append(obj)    
-        items = self.draw_line_points(tag, verts)
+        items = self.draw_line_points(tag, points, color)
         for item in items:
             self.item_obj_map[item] = obj
+            
         self.item_obj_map[tag] = obj    
         return obj
+        
+    def add_pen_item(self, x, y):           
+        self.points.append((x, y))
+        points = simplify(self.points[1:-2])     
+        self.draw_pen(points)
         
     def get_font_width(self, text):
         font = self.font
@@ -426,8 +436,9 @@ class ImageCanvas(tk.Canvas):
         self.item_obj_map[item] = obj
         self.item_obj_map[tag] = obj
         
-    def draw_text(self, x, y, text):
-        color = self.colors['text'] 
+    def draw_text(self, x, y, text, color=None):
+        if color == None:
+           color = self.colors['text'] 
         tag = 'text' + str(self.index)
         self.index += 1
         item = self.create_text(x, y, text=text, fill=color, font=self.font, anchor='nw', tag=('text', tag))
@@ -436,16 +447,32 @@ class ImageCanvas(tk.Canvas):
         self.add_obj(obj, item, tag)
         return obj
         
-    def draw_line(self, x0, y0, x, y):
-        color = self.colors['line'] 
+    def draw_line(self, x0, y0, x, y, color=None):
+        if color == None:
+           color = self.colors['line'] 
         p2 = (x0, y0, x, y)
         tag = 'line' + str(self.index)
         self.index += 1
         item = self.create_line(p2, fill=color, width = self.lw, tag=('line', tag))
-        box = self.bbox(item)
-        #self.puts_item('line', pos=p2, color=color)        
+        box = self.bbox(item)     
         obj = Obj(self, tag, 'line', box, pos=p2, color=color)
         self.add_obj(obj, item, tag)
+        return obj
+        
+    def draw_image(self, mode, x, y, filename):
+        imageobj = ImageObj(filename)
+        if imageobj == None:
+            return
+        tag = mode + str(self.index)
+        self.index += 1
+        tkimage = imageobj.get_tkimage()  
+        item = self.create_image(x, y, image=tkimage, anchor='nw', tag=(mode, tag))
+        box = self.bbox(item)   
+        obj = Obj(self, tag, mode, box, imageobj=imageobj, filename=filename, pos=(x, y))
+        obj.tkimage = tkimage
+        self.add_obj(obj, item, tag)
+        #if mode == 'bkg':
+        #    self.lower(item)
         return obj
         
     def add_text_item(self, x, y, text):
@@ -479,39 +506,94 @@ class ImageCanvas(tk.Canvas):
             self.add_text_item(x, y, self.text)
         self.index += 1
         
-    def on_puts_editor(self, event=None):
+            
+    def puts_item(self, mode, **kw):
+        self.data.append((mode, kw))
+        self.editor.puts(mode + '=' + str(kw))
+        return kw
+        
+    def to_editor(self, event=None):
+        self.editor = self.root.editor
+        self.editor.puts('\nGraph=[{')
         for obj in self.objs:
             obj.update()
             if obj.mode == 'line':
-                self.puts_item('line', pos=obj.pos, color=obj.color)  
+                coords = self.coords(obj.tag)
+                self.puts_item('    line', coords=coords, color=obj.color)  
             elif obj.mode == 'text':    
-                self.puts_item('\"'+obj.text+'\"', pos=obj.pos, color=obj.color)
+                self.puts_item('    \"'+obj.text+'\"', pos=obj.pos, color=obj.color)
+            elif obj.mode == 'image':
+                self.puts_item('    image', pos=obj.pos, filename=obj.filename)
             elif obj.mode == 'pen':    
-                self.puts_item('pen', color=obj.color, points=obj.verts)  
-            
-    def add_image(self, imageobj, tag='imageobj'):
-        self.tkimage = imageobj.get_tkimage()  
-        self.create_image(0, 0, image=self.tkimage, anchor='nw', tag=tag)
-        self.update()
+                lst = []
+                for p in obj.points:
+                    lst.append(tuple(p))
+                s = str(lst)
+                self.puts_item('    pen', color=obj.color, points=s)  
+        self.editor.puts('}]\n')            
+             
+                   
+    def puts_data(self, text):
+        self.clear()
+        for line in text.splitlines():
+            if not '=' in line:
+                continue
+            mode, data = line.strip().split('=')
+            mode = mode.strip()
+            if mode[0] in '\'\"' :
+                mode = eval(mode)
+            dct = eval(data)
+            color = dct.get('color')
+            if mode == 'line':
+                x, y, x1, y1 = dct['coords']
+                self.draw_line(x, y, x1, y1, color)
+            elif mode == 'pen':             
+                points = eval(dct['points'])                
+                self.draw_pen(points, color)
+            elif mode == 'bkg':
+                x, y = dct.get('pos', (0, 0))
+                self.draw_image('bkg', x, y, dct.get('filename'))
+            else:
+                print([mode])
+                x, y = dct.get('pos', (0, 0))
+                
+                self.draw_text(x, y, mode, color)
         
+
+    def add_image(self, filename):
+        self.draw_image('image', 0, 0, filename)
+        self.set_mode('move')
+        
+    def draw_to_image(self, imageobj):
+        lw = self.lw      
+        draw = imageobj.get_draw()
+        for obj in self.objs:
+            obj.update()    
+            if obj.mode == 'bkg':
+                imageobj.draw_image(obj.pos, obj.imageobj)
+        name, fsize = self.font
+        for obj in self.objs:
+            obj.update()
+            if obj.mode == 'line':     
+                coords = self.coords(obj.tag)
+                draw.line(coords, fill=obj.color, width=lw)
+            elif obj.mode == 'pen':                
+                draw.polygon(obj.points, fill=obj.color, width=lw)
+            elif obj.mode == 'bkg':
+                pass
+            elif obj.mode == 'image':
+                imageobj.draw_image(obj.pos, obj.imageobj)    
+            else:
+                draw.text(obj.pos, text=obj.text, fill=obj.color, font=self.imagefont)   
+                
     def save_image(self):        
         w, h = 1024, 768
         imageobj = ImageObj(size=(w, h))
-        lw = self.lw      
-        draw = imageobj.get_draw()
-        name, fsize = self.font
-
-        for mode, dct in self.data:
-            if mode == 'line':     
-                x0, y0, x1, y1 = dct['pos']           
-                draw.line((x0, y0, x1, y1), fill=dct['color'], width=lw)
-            elif mode == 'pen':
-                pass
-            else:
-                pos = dct['pos']
-                draw.text(pos, text=mode, fill=dct['color'], font=self.imagefont)     
-        from fileio import get_path        
-        imageobj.save(get_path('~/tmp/canvas.png'))    
+        self.draw_to_image(imageobj)  
+        from fileio import get_path    
+        box = imageobj.get_clip_box(imageobj.image)
+        print(box)    
+        imageobj.save(get_path('~/tmp/canvas.png'), box=box)    
         
             
 
@@ -533,13 +615,14 @@ class CanvasFrame(tk.Frame):
         
     def add_toolbar(self, tb):        
         lst = [('Clear', self.on_clear), ('-', ''),
+               ('Import Image', self.on_import_image), 
                ('Text', self.on_set_mode), 
                ('Line', self.on_set_mode),
                ('Pen',  self.on_set_mode),
                ('Move', self.on_set_mode), 
                ('Color', self.on_select_color),
                ('-', ''),
-               ('Puts on Editor', self.on_puts_editor),
+               ('To Editor', self.to_editor),
                ('-', ''),
                ('Save Image', self.on_save)
                ]               
@@ -547,8 +630,15 @@ class CanvasFrame(tk.Frame):
         self.buttons[0].set_state(True)
         self.label = tb.add_label(text = 'test draw 中文 text')
 
-    def on_puts_editor(self, event=None):
-        self.canvas.on_puts_editor(event)
+    def on_import_image(self, event=None):
+        pth = '/link/gallery'
+        file = askopenfilename(title='Open an image:', path=pth, ext='img') 
+        if file == None or len(file) == 0:
+            return
+        self.canvas.add_image(file)
+         
+    def to_editor(self, event=None):
+        self.canvas.to_editor(event)
         
     def on_save(self, event=None):
         self.canvas.save_image()
@@ -592,6 +682,7 @@ class CanvasFrame(tk.Frame):
 class DrawText(tk.Frame):
     def __init__(self, app, **kw):
         super().__init__(app, **kw)
+        self.root = root = app.winfo_toplevel()
         self.layout = Layout(self)
         selector = dbSelector(self, 'note', 'Graph') 
         self.tk.setvar('selector', selector)
@@ -605,6 +696,10 @@ class DrawText(tk.Frame):
         self.pack(fill='both', expand=True)
         canvas.editor.bind_all('<<CommitItem>>', selector.on_commit)  
         canvas.canvas.msg = selector.msg
+        root.editor = canvas.editor
+        root.canvas = canvas.canvas
+        root.selector = selector
+        root.msg = selector.msg
         sys.stdout = selector.msg
     
     def on_select(self, key, text):
