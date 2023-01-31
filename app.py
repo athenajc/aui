@@ -43,9 +43,10 @@ def add_image(master, obj):
     widget.pack()
     return widget          
         
-def addFrame(master, Frame):
+def addFrame(master, Frame, fill=True):
     frame = Frame(master)
-    frame.pack(fill='both', expand=True) 
+    if fill == True:
+       frame.pack(fill='both', expand=True) 
     return frame
     
 def packframe(master, **kw):
@@ -79,9 +80,10 @@ def twoframev(master, sep=0.5):
 def twoframeh(master, sep=0.5):
     return twoframe(master, style='h', sep=sep)  
     
-def add_textobj(master, TextClass=None):
+def add_textobj(master, TextClass=None, fill=True):
     frame = tk.Frame(master, background='#323c44', relief='sunken', padx=10)
-    frame.pack(side='left', fill='both', expand=True)
+    if fill == True:
+        frame.pack(side='left', fill='both', expand=True)
     frame.scrollframe = master
     if TextClass == None:
         TextClass = Text
@@ -92,21 +94,24 @@ def add_textobj(master, TextClass=None):
     textbox.tag_config('find', foreground='black', background='#999')    
     return textbox
     
-def add_msg(master):
+def add_msg(master, fill=True):
     msg = Messagebox(master)
-    msg.pack(side='left', fill='both', expand=True)
+    if fill == True: 
+        msg.pack(side='left', fill='both', expand=True)
     msg.tk.setvar('msg', msg)    
     return msg
     
-def add_filetree(master):
+def add_filetree(master, fill=True):
     tree = FileTreeView(master)
-    tree.pack(fill='both', expand=True)
+    if fill == True:
+        tree.pack(fill='both', expand=True)
     tree.tk.setvar('filetree', tree)   
     return tree
     
-def add_tree(master):
+def add_tree(master, fill=True):
     tree = TreeView(master)
-    tree.pack(fill='both', expand=True)
+    if fill == True:
+       tree.pack(fill='both', expand=True)
     tree.tk.setvar('tree', tree)   
     return tree
     
@@ -169,22 +174,67 @@ def set_icon(app, icon):
     except:
         print('load icon', icon, 'fail')
 
+class ObjCommon():    
+    def add_obj_name(self, master, name, **kw):
+        if name == 'frame':
+            return tk.Frame(master, **kw)
+        elif name == 'msg':
+            return Messagebox(master)
+        elif name == 'tree':
+            return TreeView(master)
+        elif name == 'text':
+            return Text(master, **kw)
+        elif name == 'filetree':
+            return FileTreeView(master)
+        elif name == 'panel':
+            return Panel(master, **kw)    
+        elif name == 'menu':
+            return MenuBar(master, **kw)    
+                
+    def add_frame(self, objclass=tk.Frame, master=None, **kw):
+        if master == None:
+            master = self        
+        frame = objclass(master, **kw)
+        frame.root = self
+        frame.size = self.size
+        return frame
         
-class aFrame(tk.Frame):     
-    def __init__(self, master, **kw):       
+    def add(self, obj='frame', **kw):
+        if obj == 'frame':
+            return aFrame(self, **kw)
+        elif type(obj) == str:    
+            return self.add_obj_name(self, obj, **kw)
+        else:
+            return aFrame(self, **kw)   
+        
+    def get_layout(self, master=None):
+        from aui.Layout import Layout
+        if master == None:
+            master = self
+        layout = Layout(master)
+        return layout       
+        
+    def get(self, name, **kw):
+        if name == 'layout':
+            return self.get_layout(self)
+        if name in ['frame', 'text', 'msg', 'tree', 'filetree', 'nb', 'panel', 'menu']:
+            return self.add_obj_name(self, name, **kw)     
+        if name in globals():
+            return globals().get(name)
+            
+        return self.tk.getvar(name)
+            
+        
+class aFrame(tk.Frame, ObjCommon):     
+    def __init__(self, master, pack=True, **kw):       
         super().__init__(master, **kw)
         self.master = master
-        self.root = master.winfo_toplevel()   
-        self.tk = master.tk     
-        self.pack(fill='both', expand=True)   
+        self.root = master.winfo_toplevel()    
+        if pack == True:  
+           self.pack(fill='both', expand=True)   
 
     def mainloop(self):
-        self.root.mainloop()
-        
-    def add(self, WidgetClass):
-        frame = WidgetClass()
-        frame.pack(fill='both', expand=True) 
-        return frame        
+        self.root.mainloop()    
         
     def run(self, WidgetClass=None, arg=None):
         if WidgetClass != None:       
@@ -325,8 +375,10 @@ class aFrame(tk.Frame):
         
     def set_icon(self, icon):
         set_icon(self, icon)
+        
+
                
-class TopFrame(tk.Toplevel):    
+class TopFrame(tk.Toplevel, ObjCommon):    
     def __init__(self, title='Test Frame', size=(1300, 900)):       
         super().__init__()
         w, h = size
@@ -340,28 +392,35 @@ class TopFrame(tk.Toplevel):
         frame = objclass(self)
         return frame
         
+class tkApp(tk.Tk, ObjCommon):
+    def __init__(self, title='tkApp', size=(1024, 768), icon=None):
+        super().__init__()
+        self.title(title)
+        self.setvar('root', self)
+        appname = title.replace(' ', '')
+        self.setvar('appname', appname)
+        self.set_size(size)
+        
+    def set_icon(self, icon):
+        set_icon(icon)
+        
+    def set_size(self, size):
+        w, h = size
+        self.size = size
+        self.geometry('%dx%d'%(w, h)) 
+        
+    def setvar(self, key, value):
+        self.tk.setvar(key, value)
+        
+    def getvar(self, key):
+        self.tk.getvar(key)       
+        
     
-
-
-def App(title='A frame', size=(800, 600), Frame=None, icon=None):    
-    root = tk.Tk()
-    root.title(title)
-    root.tk.setvar('root', root)
-    appname = title.replace(' ', '')
-    root.tk.setvar('appname', appname)
-    w, h = size
-    root.size = size
-    root.geometry('%dx%d'%(w, h)) 
-    set_icon(root, icon)
-    if Frame == None:
-        Frame = aFrame
-    
-    frame = Frame(root)
-    frame.size = (w, h)
-    #frame.pack(fill='both', expand=True)
-    root.tk.setvar('app', frame)
-    frame.name = appname
-    frame.root = root
+def App(title='A frame', size=(800, 600), Frame=aFrame, icon=None):    
+    root = tkApp(title, size, icon)
+    if Frame == None:        
+        return root
+    frame = root.add(Frame)
     return frame
     
 from tkinter import filedialog as fd
@@ -401,9 +460,17 @@ def askstring(title, prompt):
 
 
 if __name__ == '__main__':
-    app = App(title='APP', size=(1500,860))
-    app.add_set1()
-    print(app.tk.getvar('app'))
+    app = App()
+    layout = app.get('layout')  
+    menu = app.get('menu')
+    layout.add_left(menu, 100)
+    frame = app.get('frame', bg='#333')
+    layout.add_top(frame, 32)   
+    tree = app.get('tree')
+    msg = app.get('msg')
+    layout.add_V2(tree, msg)
+    #app.add_set1()
+    #print(app.tk.getvar('app'))
     app.mainloop()
     
     

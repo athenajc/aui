@@ -268,7 +268,7 @@ class MenuBar(tk.Frame):
          
 class Panel(tk.Text):
     def __init__(self, master, style='h', items=None, size=None, **kw):
-        super().__init__(master, kw)
+        super().__init__(master, **kw)
         self.size = size
         self.style = style
         self.relief = 'flat'
@@ -361,29 +361,38 @@ class Panel(tk.Text):
         self.add(label)         
         return label
         
-    def add_button(self, name, action=None):
-        button = Button(self, text=name, action=action)
+    def add_button(self, name, action=None, **kw):
+        button = Button(self, text=name, action=action, **kw)
         if self.style == 'v':
             button.config(width=12, relief='flat')
             button.pack(fill='x')
         self.add(button)
         return button
         
-    def add_buttons(self, buttons, style='h'):
+    def add_buttons(self, buttons, style='h', **kw):
         self.add_sep()
         lst = []   
         for a, b in buttons:   
             if a == '-' or a == '':
                 self.add_sep()
                 continue        
-            btn = self.add_button(a, b)   
+            btn = self.add_button(a, b, **kw)   
             lst.append(btn) 
         self.add_sep()
         return lst
         
-    def add_entry(self, label=None, button=None):   
-        entry = add_entry(self, label, button)
+    def add_entry(self, label='', button=None, **kw):   
+        self.add_space()
+        if label != None:
+            labelobj = tk.Label(self, text=label, bg='#232323', fg='white', font=(14))
+            self.add(labelobj)
+            self.add_space()
+        entry = tk.Entry(self, **kw)    
         self.add(entry)
+        if label != None:
+           entry.label = labelobj
+        self.add_space()
+        return entry
 
 #----------------------------------------------------------------------------------      
 if __name__ == '__main__':   
@@ -418,17 +427,7 @@ if __name__ == '__main__':
         panel.add_scrollbar()   
         frame.mainloop()  
                  
-    def test_scrollbar():
-        app = App(title='APP', size=(1000,860))   
-
-        panel = Panel(app, size=(960, 860))
-        #panel.base.config(width=960//16)
-        panel.pack(side='left', fill='both', expand=True)
-        panel.add_scrollbar()       
-        panel.puts('Reset,Open,,Close,,History,,Save,Save as,,Undo,Redo,,Copy,Cut,Paste,,')
-        app.mainloop()    
-        
-    test_scrollbar()
+    
     test_menubar('v')
 
 

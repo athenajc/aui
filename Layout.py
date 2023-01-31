@@ -312,6 +312,20 @@ class Layout(AuiObj):
         self.add(f0, box=(left, top, xsep, bottom))
         self.add(f1, box=(xsep+'+w8', top, right, ysep))
         self.add(f2, box=(xsep+'+w8', ysep + '+h8', right, bottom)) 
+        
+    def add_HVH(self, f0, f1, f2, f3, sep=(0.3, 0.5, 0.7), yrange=(0.2, 0.9), box=None):
+        if box == None:
+            box = self.box
+        left, top, right, bottom = box
+        sep1, sep2, sep3 = sep        
+
+        xsep1 = self.add_xsep(sep1, xrange=(0.11, 0.5), box=box)
+        xsep2 = self.add_xsep(sep3, xrange=(0.55, 0.9), box=box)   
+        ysep = self.add_ysep(sep2, yrange, box=(xsep1+'+w8', top, xsep2, bottom))     
+        self.add(f0, box=(left, top, xsep1, bottom))
+        self.add(f1, box=(xsep1+'+w8',          top, xsep2, ysep))
+        self.add(f2, box=(xsep1+'+w8', ysep + '+h8', xsep2, bottom)) 
+        self.add(f3, box=(xsep2+'+w8', top, right, bottom)) 
 
     def add_set1(self, objs=(), seph=0.2, sepv=0.7, box=None):            
         f0, f1, f2 = objs

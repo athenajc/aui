@@ -17,7 +17,6 @@ from .app import *
 from .ImageGrid import *
 from .runfile import RunFile, TestFrame, RunServer
 from .Layout import Layout, CanvasPanel
-from .dbSelector import dbSelector
 from .ColorBox import *
 from .tkWin import *
 
