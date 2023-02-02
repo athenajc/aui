@@ -536,10 +536,8 @@ class ImageObj(ImageFill, ButtonImage):
         img = self.pilimage.crop(box=box)        
         self.set_image(img)
         
-    def resize(self, size):
-        if self.filename == None:
-            return
-        if '.svg' in self.filename:
+    def resize(self, size):        
+        if self.filename != None and '.svg' in self.filename:
             img = self.load_svg(self.filename, size=size)
         else:
             img = self.pilimage.resize(size=size)

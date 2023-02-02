@@ -177,7 +177,7 @@ def set_icon(app, icon):
 class ObjCommon():    
     def add_obj_name(self, master, name, **kw):
         if name == 'frame':
-            return tk.Frame(master, **kw)
+            return aFrame(master, **kw)
         elif name == 'msg':
             return Messagebox(master)
         elif name == 'tree':
@@ -377,6 +377,46 @@ class aFrame(tk.Frame, ObjCommon):
         set_icon(self, icon)
         
 
+from tkinter import filedialog as fd
+from tkinter.messagebox import showinfo
+filetypes = {
+    'py': ('Python files', '*.py, *.txt'),
+    'txt': ('Text files', '*.txt, *.py'),
+    'img': ('Image files', '*.png *.svg *.jpg'),
+    'image': ('Image files', '*.png *.svg *.jpg'),
+    'all': ('All files', '*.*'),
+    '*': ('All files', '*.*') 
+}    
+    
+def get_filetypes(ext):
+    ftlst = []
+    for name in [ext, 'all']:
+        p = filetypes.get(name, (name, '*.'+name))        
+        ftlst.append(p)  
+    return ftlst
+
+def askopenfile(title='Open a file', path='/link', ext='py'):          
+    return fd.askopenfile(title=title, initialdir=path, filetypes=get_filetypes(ext))
+    
+def askopenfilename(title='Open an image', path=None, ext='img'):          
+    if path == None:
+       if ext == 'img':
+          path =  '/link/data'
+       else:
+          path = '/link'
+    return fd.askopenfilename(title=title, initialdir=path, filetypes=get_filetypes(ext))
+            
+def askopenfiles(title='Open files', path='/link', ext='py'):          
+    return fd.askopenfiles(title=title, initialdir=path, filetypes=get_filetypes(ext))
+    
+def asksaveasfile(title='Save as file', path='/link', ext='py'):          
+    return fd.asksaveasfilename(title=title, initialdir=path, filetypes=get_filetypes(ext))
+
+def askstring(title, prompt):
+    from tkinter import simpledialog
+    answer = simpledialog.askstring(title, prompt)
+    return answer
+
                
 class TopFrame(tk.Toplevel, ObjCommon):    
     def __init__(self, title='Test Frame', size=(1300, 900)):       
@@ -415,48 +455,29 @@ class tkApp(tk.Tk, ObjCommon):
     def getvar(self, key):
         self.tk.getvar(key)       
         
+    def showinfo(self, *msg):
+        showinfo(str(msg))
+        
+    def ask(self, op='openfile', **kw):
+        if 'open' in op:
+            if op == 'openfile':
+                return askopenfile(**kw)
+            if op == 'openfilename':
+                return askopenfilename(**kw)    
+            if op == 'openfiles':
+                return askopenfiles(**kw)            
+        if op == 'savefile' or op == 'saveasfile':
+            return asksaveasfile(**kw)
+        if op == 'string':
+            return askstring(**kw)    
+        
+                    
     
 def App(title='A frame', size=(800, 600), Frame=aFrame, icon=None):    
     root = tkApp(title, size, icon)
-    if Frame == None:        
-        return root
     frame = root.add(Frame)
     return frame
     
-from tkinter import filedialog as fd
-from tkinter.messagebox import showinfo
-filetypes = {
-    'py': ('Python files', '*.py, *.txt'),
-    'txt': ('Text files', '*.txt, *.py'),
-    'img': ('Image files', '*.png *.svg *.jpg'),
-    'image': ('Image files', '*.png *.svg *.jpg'),
-    'all': ('All files', '*.*'),
-    '*': ('All files', '*.*') 
-}    
-    
-def get_filetypes(ext):
-    ftlst = []
-    for name in [ext, 'all']:
-        p = filetypes.get(name, (name, '*.'+name))        
-        ftlst.append(p)  
-    return ftlst
-
-def askopenfile(title='Open a file', path='/link', ext='py'):          
-    return fd.askopenfile(title=title, initialdir=path, filetypes=get_filetypes(ext))
-    
-def askopenfilename(title='Open an image', path='/link', ext='img'):          
-    return fd.askopenfilename(title=title, initialdir=path, filetypes=get_filetypes(ext))
-            
-def askopenfiles(title='Open files', path='/link', ext='py'):          
-    return fd.askopenfiles(title=title, initialdir=path, filetypes=get_filetypes(ext))
-    
-def asksaveasfile(title='Save as file', path='/link', ext='py'):          
-    return fd.asksaveasfile(title=title, initialdir=path, filetypes=get_filetypes(ext))
-
-def askstring(title, prompt):
-    from tkinter import simpledialog
-    answer = simpledialog.askstring(title, prompt)
-    return answer
 
 
 if __name__ == '__main__':

@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
 import PIL
-
+import re
 
 class Button(tk.Button):
     def __init__(self, master, text='', action=None, pack=None, **kw):
@@ -34,6 +34,11 @@ def add_button(master, name, action=None, pack=(), **kw):
        btn.pack(pack)
     return btn
     
+class tkEntry(tk.Entry):        
+    def set(self, text):
+        n = len(self.get())
+        self.delete(0, n)
+        self.insert(0, text)     
     
 class LabelEntry():
     def __init__(self, master, text='', cmd=None, label=None, **kw):
@@ -220,25 +225,26 @@ class ToolBar(tk.Frame):
         
 
 class MenuBar(tk.Frame):
-    def __init__(self, master, items=[], style='v', **kw):
-        super().__init__(master, **kw)
+    def __init__(self, master, items=[], style='v', relief='flat', **kw):
+        super().__init__(master)
         self.button = {}
         self.style = style
+        self.relief = relief
         if style == 'h':
             self.side = 'left'
             self.fill = 'y'
         else:
             self.side = 'top'
             self.fill = 'x'
-        self.add_buttons(items)
+        self.add_buttons(items, **kw)
         
     def reset(self):        
         for widget in self.pack_slaves():
             widget.destroy()
         self.buttons = {}
         
-    def add_button(self, key, action=None):
-        button = Button(self, text=key, relief='flat', action=action)
+    def add_button(self, key, action=None, **kw):
+        button = Button(self, text=key, relief=self.relief, action=action, **kw)
         button.pack(side=self.side, fill=self.fill, expand=False) 
         self.button[key] = button
         
@@ -250,15 +256,15 @@ class MenuBar(tk.Frame):
            sep = tk.Frame(self, width=1, height=40, bg='#979899')
            sep.pack(side='left', fill='y', padx=5) 
         
-    def add_buttons(self, items):        
+    def add_buttons(self, items, **kw):        
         self.button = {}
         for key in items:
             action = None
-            if type(key) == tuple:
-                key, action = key
+            if type(key) in (tuple, list):
+                self.add_button(key[0], key[1], **kw)
                 
-            if key != '':
-                self.add_button(key, action)
+            elif key != '' and key != '-':
+                self.add_button(key, action, **kw)
             else:
                 self.add_sep()
           
@@ -267,22 +273,23 @@ class MenuBar(tk.Frame):
          
          
 class Panel(tk.Text):
-    def __init__(self, master, style='h', items=None, size=None, **kw):
-        super().__init__(master, **kw)
+    def __init__(self, master, style='h', items=None, size=None, **kw):        
+        super().__init__(master, **kw)        
         self.size = size
         self.style = style
         self.relief = 'flat'
         self.master = master
         
         self.base = self
+        self.bg = master.cget('background')
         self.config(background = master.cget('background'))
         self.config(state= "disabled", font=('Mono', 20))
 
         self.widgets = []
         self.limit = 1000
         if items != None:
-            self.add_buttons(items, style=style)
-        
+            self.add_menu(items)
+            
     def add_scrollbar(self):
         from aui.aui_ui import ScrollBar
         self.scrollbar = ScrollBar(self)        
@@ -306,9 +313,9 @@ class Panel(tk.Text):
         
     def add_space(self, n = 1):
         if self.style == 'h':
-            obj = tk.Label(self, text='', height=n)
+            obj = tk.Label(self, text='', height=n, bg=self.bg)
         else:
-            obj = tk.Label(self, text='', width=n)
+            obj = tk.Label(self, text='', width=n, bg=self.bg)
         self.add(obj)        
         
     def add_sep(self):
@@ -344,8 +351,21 @@ class Panel(tk.Text):
         if self.style == 'v':
             self.insert('end', '\n')
         
-    def add_combo(self, text='', values=[]):
-        add_combo(self, text, values)
+    def add_menu(self, items, pos='1.0', style=None, **kw): 
+        self.menuitems = items       
+        if style == None:
+            style = self.style
+        menu = MenuBar(self, style=style, items=items)
+        self.insert_widget(pos, menu)
+        return menu
+        
+    def add_combo(self, label = '', text='', values=[]):
+        if label != '':
+            labelobj = tk.Label(self, text=label, bg='#232323', fg='white', font=(14), padx=5)
+            self.add(labelobj)
+            self.add_space()
+            
+        combo = add_combo(self, text, values)
         self.add(combo)
         return combo
         
@@ -363,10 +383,11 @@ class Panel(tk.Text):
         
     def add_button(self, name, action=None, **kw):
         button = Button(self, text=name, action=action, **kw)
+        self.add(button)
         if self.style == 'v':
             button.config(width=12, relief='flat')
-            button.pack(fill='x')
-        self.add(button)
+            #button.pack(fill='x')
+            self.insert('end', '\n')        
         return button
         
     def add_buttons(self, buttons, style='h', **kw):
@@ -387,7 +408,7 @@ class Panel(tk.Text):
             labelobj = tk.Label(self, text=label, bg='#232323', fg='white', font=(14))
             self.add(labelobj)
             self.add_space()
-        entry = tk.Entry(self, **kw)    
+        entry = tkEntry(self, **kw)    
         self.add(entry)
         if label != None:
            entry.label = labelobj
@@ -396,9 +417,7 @@ class Panel(tk.Text):
 
 #----------------------------------------------------------------------------------      
 if __name__ == '__main__':   
-    from tkinter.messagebox import showinfo
-    import aui
-    from aui import App
+    from aui import App, showinfo
     
     def on_test(event):
         s = event.widget.text
@@ -409,25 +428,26 @@ if __name__ == '__main__':
         else:
             showinfo('[ %s ] selected' % s, s + '\n' + str((event)))
         
-    def test_menubar(style):                 
-        if style == 'v':
-            w, h = 130,860
-        else:
-            w, h = 1260, 50
-        frame = App(title='APP', size=(w, h))
-        frame1 = aui.twoframe(frame, 'right', 0.1)
+    def test_menubar(frame):                 
         names = 'Reset,Open,,Close,,History,,Save,Save as,,Undo,Redo,,Copy,Cut,Paste,,'
         names += 'Add Tab,Remove Tab,,Exec,,Run'
         items = []
         for s in names.split(',') :
-            items.append((s, on_test))
-        panel = Panel(frame1.left, items=items, style=style, size=(w, h)) 
+            if s == '':
+                items.append('-')
+            else:
+                items.append((s, on_test))        
+ 
+        panel = Panel(frame, items=items, style='h', relief='raise', height=1)
+        panel.pack(side='top')
         
-        panel.pack(fill='y', expand=False)
-        panel.add_scrollbar()   
-        frame.mainloop()  
-                 
-    
-    test_menubar('v')
+        panel = Panel(frame, items=items, style='v', relief='raise', width=8)
+        panel.pack(side='left')
+ 
+        
+    app = App(title='APP', size=(1024, 768))     
+    test_menubar(app)  
+    app.mainloop() 
+
 
 
