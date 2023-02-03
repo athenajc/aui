@@ -1,8 +1,5 @@
 #! /usr/bin/python3.8
-import os
-import sys
-import re
-import time
+import os, sys, re, time
 import tkinter as tk
 import DB
 import aui
@@ -19,7 +16,8 @@ class HeadPanel(Panel):
         self.bg = app.cget('bg')
         self.font = ('Mono', 11)
         self.bold = ('Mono', 11, 'bold')
-        self.tabs = self.add_db_buttons() 
+        dbfiles = ['code', 'cache', 'file', 'note']
+        self.dboptions = self.add_dbfile_entry(dbfiles, act = self.app.on_select_db) 
         self.textvar = self.add_textlabel()                
         #self.buttons = self.add_buttons2()        
 
@@ -33,17 +31,18 @@ class HeadPanel(Panel):
                ]  
         buttons = self.add_buttons(lst)     
         return buttons
-                      
-    def add_db_buttons(self):
+        
+    def on_dbentry(self, event=None):
+        name = event.widget.get()
+        if not name in self.dboptions.items:
+            self.dboptions.add(name)
+        
+    def add_dbfile_entry(self, items=[], act=None):
+        options = self.add_options(label='dbFile:', items=items, act=act)   
+        entry = self.add_entry(act=self.on_dbentry)        
+        entry.config(width=7)
         self.add_sep()
-        lst = []
-        for s in ['code', 'cache', 'file', 'note']:
-            button = self.add_button(s, self.app.on_select_db)
-            button.config(font=self.font, background='#999')
-            lst.append(button)        
-        lst[0].set_state(True)
-        self.add_sep()
-        return lst        
+        return options       
         
     def add_textlabel(self):
         label = self.add_textvar()
@@ -51,16 +50,21 @@ class HeadPanel(Panel):
         return label.textvar
         
     def set_db(self, name):
-        for bn in self.tabs:
-            bn.set_state(bn.name==name)
+        #self.dbentry.set_text(name)
+        return
+        #for bn in self.tabs:
+         #   bn.set_state(bn.name==name)
 
 class SelectDB():
     def select_db(self, name):
         self.panel.set_db(name)
         self.set_db(name)
         
-    def on_select_db(self, event=None):
-        name = event.widget.name   
+    def on_select_db(self, event=None, arg1=None, arg2=None):
+        if type(event) == str:
+            name = self.getvar(event)
+        else:
+            name = event.widget.get()   
         self.select_db(name)
         
     def set_db(self, name):
@@ -96,7 +100,8 @@ class dbSelector(tk.Frame, SelectDB):
         self.tree_item = ''
          
         self.init_ui()      
-        self.panel.set_db(name)
+        #self.panel.set_db(name)
+        self.panel.dboptions.set(name)
         if self.table != None:
            self.switch_table(table)  
         elif tables != None and len(tables) > 1: 
@@ -208,13 +213,8 @@ class dbSelector(tk.Frame, SelectDB):
             act(key, text)     
         
     def on_select(self, event=None):         
-        item = self.tree.focus() 
-        self.tree_item = item
-        dct = self.tree.item(item)
-        key = dct.get('text')           
-        self.update_item(key, item)
-        
-           
+        item, key = self.tree.get_focus_item_and_key()
+        self.update_item(key, item)       
         
     def on_rename_item(self, event=None):
         p = event.widget.getvar('<<RenameItem>>')
@@ -249,7 +249,7 @@ class dbSelector(tk.Frame, SelectDB):
 def run(name):    
     app = App('DB Table Selector', size=(500, 900))    
     frame = dbSelector(app, 'note', 'Graph')
-    frame.pack(fill='both', expand=True)
+    app.packfill(frame)
     app.mainloop()   
             
 if __name__ == '__main__':   

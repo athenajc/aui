@@ -17,8 +17,8 @@ class ttkTree(ttk.Treeview):
         self.tag_configure('folder', font='Mono 10 bold', foreground='#557')
         self.tag_configure('node', font='Mono 10', foreground='#555')    
         self.pack(fill='both', expand=True)
-        self.bind('<ButtonPress-1>', self.on_click)   
-        
+        self.bind('<ButtonPress-1>', self.on_click)           
+    
     def enable_edit(self):
         self.bind('<Double-1>', self.on_edit_cell)   
 
@@ -105,6 +105,16 @@ class Listbox(ttkTree):
             
 #-------------------------------------------------------------------------
 class TreeView(ttkTree):
+    def bind_click(self, action):
+        self.click_select = 'click'   
+        self.bind('<ButtonRelease-1>', action)    
+ 
+    def get_focus_item_and_key(self):
+        item = self.focus() 
+        dct = self.item(item)
+        key = dct.get('text')  
+        return (item, key)
+        
     def set_node_data(self, item, data):
         self.item(item, text=data) 
               

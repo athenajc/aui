@@ -1,9 +1,10 @@
 
 from .TextObj import *
 from .TextCanvas import TextCanvas
+from .FigureCanvas import FigureCanvas, FigureTk, FigureAgg, PatchObj
 
 from .Menu import *
-from .draw_figure import *
+
  
 from .Tlog import Tlog
 
@@ -21,7 +22,8 @@ from .Layout import Layout, CanvasPanel
 from .ColorBox import *
 from .tkWin import *
 
-import tkinter as tk
+
+
 def realpath(path):
     if '~' in path:
         path = os.path.expanduser(path)    

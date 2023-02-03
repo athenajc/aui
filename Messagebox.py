@@ -154,6 +154,10 @@ class Messagebox(Text, PopMenu, Cmds):
         self.bind_cmd('db', self.cmd_db)
         #self.pack(fill='both', expand=True)  
         
+    def pprint(self, data):
+        import pprint
+        self.puts(pprint.pformat(data))
+        
     def add_menu(self):
         cmds = [('Goto', self.on_goto),
                 ('Find in Editor', self.on_find_in_editer),

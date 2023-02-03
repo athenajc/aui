@@ -34,6 +34,40 @@ def add_button(master, name, action=None, pack=(), **kw):
        btn.pack(pack)
     return btn
     
+class tkOptionMenu(tk.OptionMenu):
+    def __init__(self, master, items=['abcd'], act= None, **kw):
+        var = tk.StringVar()
+        var.set(items[0])
+        super().__init__(master, var, *items, **kw)        
+        self.config(cursor='hand2')
+        self.tkvar = var
+        name = self.cget('menu')
+        self.menu = self.nametowidget(name)
+        self.items = items
+        if act != None:
+           var.trace("w", self.on_trace)
+           self.act = act
+
+    def get(self):
+        return self.tkvar.get()
+        
+    def set(self, text):
+        self.tkvar.set(text)
+        
+    def set_text(self, text):
+        self.tkvar.set(text)
+        
+    def add(self, label): 
+        self.items.append(label)       
+        self.menu.add_command(label=label)
+                   
+    def on_trace(self, event=None, arg1=None, arg2=None):    
+        name = self.get()
+        event = tk.Event()
+        event.widget = self
+        event.text = name
+        self.act(event)
+    
 class tkEntry(tk.Entry):        
     def set(self, text):
         n = len(self.get())
@@ -261,7 +295,10 @@ class MenuBar(tk.Frame):
         for key in items:
             action = None
             if type(key) in (tuple, list):
-                self.add_button(key[0], key[1], **kw)
+                if key[0] in ['', '-']:
+                    self.add_sep()
+                else:
+                    self.add_button(key[0], key[1], **kw)
                 
             elif key != '' and key != '-':
                 self.add_button(key, action, **kw)
@@ -283,7 +320,7 @@ class Panel(tk.Text):
         self.base = self
         self.bg = master.cget('background')
         self.config(background = master.cget('background'))
-        self.config(state= "disabled", font=('Mono', 20))
+        self.config(state= "disabled", font=(20), cursor='arrow')
 
         self.widgets = []
         self.limit = 1000
@@ -359,13 +396,23 @@ class Panel(tk.Text):
         self.insert_widget(pos, menu)
         return menu
         
-    def add_combo(self, label = '', text='', values=[]):
+    def add_options(self, label='', items=[], act=None):
         if label != '':
-            labelobj = tk.Label(self, text=label, bg='#232323', fg='white', font=(14), padx=5)
-            self.add(labelobj)
+            self.add_label(label)
+            self.add_space()
+        optmenu = tkOptionMenu(self, items, act)
+        self.add(optmenu)
+        return optmenu
+        
+    def add_combo(self, label = '', text='', values=[], act=None):
+        if label != '':
+            self.add_label(label)
             self.add_space()
             
         combo = add_combo(self, text, values)
+        if act != None:
+            combo.bind('<Return>', act) 
+            combo.bind("<<ComboboxSelected>>", act)           
         self.add(combo)
         return combo
         
@@ -402,17 +449,19 @@ class Panel(tk.Text):
         self.add_sep()
         return lst
         
-    def add_entry(self, label='', button=None, **kw):   
+    def add_entry(self, label='', button=None, act=None, **kw):   
         self.add_space()
-        if label != None:
-            labelobj = tk.Label(self, text=label, bg='#232323', fg='white', font=(14))
-            self.add(labelobj)
+        labelobj = None
+        if label != '':
+            labelobj = self.add_label(label)
             self.add_space()
         entry = tkEntry(self, **kw)    
         self.add(entry)
-        if label != None:
-           entry.label = labelobj
+        entry.label = labelobj
+        entry.set_text = entry.set
         self.add_space()
+        if act != None:
+            entry.bind('<Return>', act) 
         return entry
 
 #----------------------------------------------------------------------------------      
@@ -447,6 +496,10 @@ if __name__ == '__main__':
         
     app = App(title='APP', size=(1024, 768))     
     test_menubar(app)  
+    panel = Panel(app)
+    combo = panel.add_combo(label='dbFile:', values=['code', 'note'])
+    options = panel.add_options(items=['code', 'note'] )
+    panel.pack()
     app.mainloop() 
 
 

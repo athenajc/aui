@@ -199,6 +199,9 @@ class ObjCommon():
         frame.size = self.size
         return frame
         
+    def packfill(self, obj):
+        obj.pack(fill='both', expand=True)
+        
     def add(self, obj='frame', **kw):
         if obj == 'frame':
             return aFrame(self, **kw)
@@ -445,9 +448,9 @@ class tkApp(tk.Tk, ObjCommon):
         set_icon(icon)
         
     def set_size(self, size):
-        w, h = size
-        self.size = size
+        w, h = size        
         self.geometry('%dx%d'%(w, h)) 
+        self.size = size
         
     def setvar(self, key, value):
         self.tk.setvar(key, value)
@@ -476,6 +479,7 @@ class tkApp(tk.Tk, ObjCommon):
 def App(title='A frame', size=(800, 600), Frame=aFrame, icon=None):    
     root = tkApp(title, size, icon)
     frame = root.add(Frame)
+    frame.size = size
     return frame
     
 
