@@ -37,7 +37,25 @@ class ImageLabel(tk.Frame):
         self.tkimage = tkimage
         self.label.configure(image = self.tkimage)    
         
-            
+class Canvas(tk.Canvas):
+    def __init__(self, master, **kw):
+        super().__init__(master, **kw)  
+        self.root = master.winfo_toplevel()
+        self.x, self.y = 0, 0
+        self.objs = []
+           
+    def add(self, pos, widget, tag='widget'):
+        x, y = pos
+        self.create_window(x, y, window=widget, tag=tag)        
+        
+    def add_image(self, pos, imageobj, anchor='nw', tag='imageobj'): 
+        tkimage = imageobj.get_tkimage()      
+        x, y = pos
+        imageobj.pos = pos
+        item = self.create_image(x, y, image=tkimage, anchor=anchor, tag=tag) 
+        self.objs.append(tkimage)
+        return item
+                  
 def add_image(master, obj):
     widget = ImageLabel(master, obj)
     widget.pack()
@@ -190,6 +208,8 @@ class ObjCommon():
             return Panel(master, **kw)    
         elif name == 'menu':
             return MenuBar(master, **kw)    
+        elif name == 'canvas':
+            return Canvas(master, **kw)      
                 
     def add_frame(self, objclass=tk.Frame, master=None, **kw):
         if master == None:
@@ -220,7 +240,7 @@ class ObjCommon():
     def get(self, name, **kw):
         if name == 'layout':
             return self.get_layout(self)
-        if name in ['frame', 'text', 'msg', 'tree', 'filetree', 'nb', 'panel', 'menu']:
+        if name in ['frame', 'text', 'msg', 'tree', 'filetree', 'nb', 'panel', 'menu', 'canvas']:
             return self.add_obj_name(self, name, **kw)     
         if name in globals():
             return globals().get(name)

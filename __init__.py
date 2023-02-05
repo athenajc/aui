@@ -4,12 +4,12 @@ from .TextCanvas import TextCanvas
 from .FigureCanvas import FigureCanvas, FigureTk, FigureAgg, PatchObj
 
 from .Menu import *
-
+from .ColorDialog import ColorDialog, chooser_color, on_colorbutton
  
 from .Tlog import Tlog
 
 from .Messagebox import Messagebox, StatusBar
-from .ImageObj import ImageObj, tkImage, ImageLabel, load_svg
+from .ImageObj import ImageObj, tkImage, ImageLabel, load_svg, cmap_colorbar
 from .PixelBuffer import PixelBuffer
 from .TreeView import *
 from .aui_ui import *

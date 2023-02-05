@@ -547,7 +547,7 @@ class ImageObj(ImageFill, ButtonImage):
         return self.pilimage.tobytes()
 
     def get_pixel(self, x, y):
-        self.pilimage.getpixel((x, y))
+        return self.pilimage.getpixel((x, y))
         
     def set_pixel(self, x, y, color):                
         self.pilimage.putpixel((int(x), int(y)), color)
@@ -578,12 +578,18 @@ class ImageObj(ImageFill, ButtonImage):
             for x0, x1 in lst:  
                 draw.line((x0, y, x1, y), color)
                 
-    def linear_gradient(self, colorname, w, h):    
-        gradient = np.linspace(0, 1, h)        
+    def linear_gradient(self, colorname, w, h, mode='l'):                  
         cmapfunc = plt.get_cmap(colorname)
-        colors = cmapfunc(gradient)
-        a = np.uint8(colors*255)
-        a1 = np.stack([a] * w, axis=1)      
+        if mode == 'l':
+           gradient = np.linspace(0, 1, h)  
+           colors = cmapfunc(gradient)
+           a = np.uint8(colors*255)
+           a1 = np.stack([a] * w, axis=1)      
+        else:
+           gradient = np.linspace(0, 1, w)  
+           colors = cmapfunc(gradient)
+           a = np.uint8(colors*255)
+           a1 = np.stack([a] * h, axis=0)      
         h1, w1, c = a1.shape    
         image = Image.fromarray(a1)
         return image
@@ -601,13 +607,15 @@ class ImageObj(ImageFill, ButtonImage):
         image = Image.fromarray(a)
         return image
         
-    def gradient(self, mode, colorname):
-        w, h = self.size
+    def gradient(self, mode, colorname, pos=(0, 0), size=None):
+        if size == None:
+            size = self.size
+        w, h = size
         if mode == 'radial' or mode == 'r':
            image = self.radial_gradient(colorname, w, h)
         else:
-           image = self.linear_gradient(colorname, w, h)
-        self.pilimage.alpha_composite(image)
+           image = self.linear_gradient(colorname, w, h, mode)
+        self.pilimage.alpha_composite(image, dest=pos)
         return image
                  
     def composite(self, obj, dest=(0, 0)):        
@@ -718,7 +726,33 @@ class ImageViewer(tk.Toplevel):
         self.tkimage = self.imgobj.get_tkimage()
         self.label.configure(image = self.tkimage) 
         
+def cmap_colorbar(lst, size=(800, 600)):
+    img = ImageObj(size=size)
+    n = len(lst)
+    w, h = size
+    h1 = (h - 10) // (n+1)
+    y = 5
+    for cmap in lst:
+        img.gradient('lh', cmap, (10, y), (w-20, h1-5))
+        y += h1 
+    return img
+    
+def plot_cmap(lst):       
+    plt.plot_color_gradients('Cmap', lst)
+    plt.show()
 
+def draw_cmap(lst):
+    img = cmap_colorbar(lst)
+    img.show()
+
+def get_cmap_colors(name, n=256):
+    cmapfunc = plt.get_cmap(name)
+    gradient = np.linspace(0, 1, n)  
+    colors = cmapfunc(gradient)
+    lst = []
+    for r, g, b, a in np.uint8(colors*255):
+        lst.append('#%02x%02x%02x' % (r, g, b))
+    return lst
 
 def pixbuf2image(p):
     w, h, c, r = p.get_width(), p.get_height(), p.get_n_channels(), p.get_rowstride()

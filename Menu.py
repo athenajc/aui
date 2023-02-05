@@ -1,7 +1,9 @@
 import tkinter as tk
 from tkinter import ttk
+from pprint import pformat
 import PIL
 import re
+import DB
 
 class Button(tk.Button):
     def __init__(self, master, text='', action=None, pack=None, **kw):
@@ -463,6 +465,36 @@ class Panel(tk.Text):
         if act != None:
             entry.bind('<Return>', act) 
         return entry
+        
+    def on_select_color(self, event=None):  
+        from aui import chooser_color, on_colorbutton    
+        button = event.widget
+        color = chooser_color(button, color=button.color)       
+        button.color = color
+        button.config(fg=color, bg=color, activebackground=color)
+        button.config(text=str(color))
+    
+    def on_commit_colors(self, event):        
+        lst = []
+        for bn in self.buttons:
+            lst.append(bn.color)
+        text = pformat(lst)    
+        DB.set_cache('colors', text)
+    
+    def add_colorbar(self, act=None): 
+        from aui import on_colorbutton       
+        self.add_sep()
+        colors = eval(DB.get_cache('colors'))
+        lst = []
+        for color in colors:
+            button = self.add_button(color, act)
+            button.bind('<Button-3>', self.on_select_color)
+            button.config(font=('bold', 9), fg=color, bg=color, activebackground=color, width=4)
+            button.color = color
+            lst.append(button)
+        self.add_button('Update DB', self.on_commit_colors)     
+        self.buttons =  lst
+        self.add_sep()
 
 #----------------------------------------------------------------------------------      
 if __name__ == '__main__':   
@@ -499,6 +531,7 @@ if __name__ == '__main__':
     panel = Panel(app)
     combo = panel.add_combo(label='dbFile:', values=['code', 'note'])
     options = panel.add_options(items=['code', 'note'] )
+    panel.add_colorbar()
     panel.pack()
     app.mainloop() 
 

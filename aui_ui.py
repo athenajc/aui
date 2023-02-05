@@ -5,6 +5,7 @@ from tkinter import ttk
 import time  
 
 
+        
 class TwoFrame(tk.Frame):
     def __init__(self, master, type='v', sep=0.3, **kw):
         tk.Frame.__init__(self, master, **kw)  
