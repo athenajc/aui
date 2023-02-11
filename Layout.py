@@ -347,6 +347,7 @@ class Layout(AuiObj):
         if box == None:
             box = self.box
         self.add(frame, box=box)        
+        
 
 if __name__ == '__main__':
     from aui import App, Panel    

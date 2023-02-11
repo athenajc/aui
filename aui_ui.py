@@ -119,15 +119,19 @@ class TwoFrame(tk.Frame):
 
         
 class Notebook():
-    def __init__(self, master, tab=None):
+    def __init__(self, master, tab=None, cmd_action=None):
         if tab != None:
             style = ttk.Style(master)
             style.configure('lefttab.TNotebook', tabposition=tab)
             notebook = ttk.Notebook(master, style = 'lefttab.TNotebook')
         else:    
             notebook = ttk.Notebook(master)
-        notebook.pack(fill = 'both', expand=True)
+        #notebook.pack(fill = 'both', expand=True)
         self.notebook = notebook
+        self.place = notebook.place
+        self.pack = notebook.pack
+        if cmd_action == True:
+            self.bind(cmd_action)
         
     def select(self, tab):
         nb = self.notebook  
@@ -149,13 +153,14 @@ class Notebook():
         return label        
 
     def add_page(self, label, widget=None):
+        from aui import aFrame
         frame = aFrame(self.notebook)
         frame.pack(fill='both', expand=True)   
         frame.label = label      
         if widget != None:
             widget.notepage = frame
             widget.label = label                       
-        self.notebook.add(frame, text=label, padx=10)    
+        self.notebook.add(frame, text=label)    
         #self.notebook.select(n)        
         return frame
         

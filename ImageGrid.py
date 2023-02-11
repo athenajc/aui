@@ -3,7 +3,8 @@ import sys
 import tkinter as tk
 import tkinter.ttk as ttk
 from PIL import Image, ImageTk
-from .Menu import Panel
+from aui.Menu import Panel
+from aui.ImageObj import ImageObj       
 import DB
 
 thumbdct = {}
@@ -179,7 +180,8 @@ class ImageGrid(Panel):
 class DirGrid(ImageGrid):
     def __init__(self, master, **kw):
         super().__init__(master, **kw)
-        path = DB.get_path('icon')                 
+        path = DB.get_path('icon')          
+        
         self.folder_image = ImageObj(path + '/folder/green.png', size=(64, 64))
         self.path = os.path.realpath('.')     
         self.multiselect = False   
@@ -270,7 +272,8 @@ class DirGrid(ImageGrid):
         obj.event_time = event.time      
         
         
-if __name__ == "__main__":     
+if __name__ == "__main__":   
+    from aui import App, Panel  
     path = '/link/data/svg'
     
     class Frame(Panel):

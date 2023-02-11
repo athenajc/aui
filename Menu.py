@@ -41,7 +41,7 @@ class tkOptionMenu(tk.OptionMenu):
         var = tk.StringVar()
         var.set(items[0])
         super().__init__(master, var, *items, **kw)        
-        self.config(cursor='hand2')
+        self.config(cursor='hand2', width=10)
         self.tkvar = var
         name = self.cget('menu')
         self.menu = self.nametowidget(name)
@@ -428,7 +428,7 @@ class Panel(tk.Text, ObjCommon):
         self.auto_fill_objs = []
         self.base = self
         self.menu = None
-        self.bg = self.cget('background')
+        self.bg = master.cget('background')
         self.config(background = self.bg)
         self.config(state= "disabled", font=(20), cursor='arrow')        
         self.widgets = []
@@ -583,11 +583,9 @@ class Panel(tk.Text, ObjCommon):
         return lst
         
     def add_entry(self, label='', button=None, act=None, **kw):   
-        self.add_space()
         labelobj = None
         if label != '':
             labelobj = self.add_label(label)
-            self.add_space()
         entry = tkEntry(self, **kw)    
         self.add(entry)
         entry.label = labelobj

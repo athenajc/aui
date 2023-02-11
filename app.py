@@ -56,9 +56,8 @@ def set_icon(app, icon=None):
     except:
         print('load icon', icon, 'fail')
 
+from tkinter import filedialog as fd
 class ObjCommon():    
-    from tkinter import filedialog as fd
-    
     filetypes = {
         'py': ('Python files', '*.py, *.txt'),
         'txt': ('Text files', '*.txt, *.py'),
@@ -71,7 +70,7 @@ class ObjCommon():
     def get_filetypes(self, ext):
         ftlst = []
         for name in [ext, 'all']:
-            p = filetypes.get(name, (name, '*.'+name))        
+            p = self.filetypes.get(name, (name, '*.'+name))        
             ftlst.append(p)  
         return ftlst
     
@@ -107,15 +106,15 @@ class ObjCommon():
     def ask(self, op='openfile', **kw):
         if 'open' in op:
             if op == 'openfile':
-                return askopenfile(**kw)
+                return self.askopenfile(**kw)
             if op == 'openfilename':
-                return askopenfilename(**kw)    
+                return self.askopenfilename(**kw)    
             if op == 'openfiles':
-                return askopenfiles(**kw)            
+                return self.askopenfiles(**kw)            
         if op == 'savefile' or op == 'saveasfile':
-            return asksaveasfile(**kw)
+            return self.asksaveasfile(**kw)
         if op == 'string':
-            return askstring(**kw)    
+            return self.askstring(**kw)    
             
     def init_colors(self):
         import DB        
@@ -183,7 +182,7 @@ class ObjCommon():
         if master == None:
             master = self
         layout = Layout(master)
-        return layout       
+        return layout               
         
     def get(self, name, **kw):
         if name == 'layout':

@@ -35,11 +35,14 @@ class ClassTree(TreeView):
         self.bind('<Enter>', self.on_enter)  
         self.bind_all("<<SwitchTextBox>>", self.on_update)
         self.bind_all("<<SetText>>", self.on_update)        
-        self.cmd_action = self.winfo_toplevel().cmd_action    
+        self.cmd_action = None #self.winfo_toplevel().cmd_action    
         self.text = ''
         self.clicktime = 0     
         self.init_pattern()       
        
+    def bind_act(self, act):
+        self.cmd_action = act
+        
     def on_enter(self, event=None):
         self.on_update()                
         
@@ -387,6 +390,7 @@ class ClassView():
         app.root.cmd_action = self.on_select_class
         self.classtree = classtree = app.classtree = ClassTree(app.treeframe)        
         classtree.msg = msg
+        classtree.bind_act(self.on_select_class)
         return classtree
         
     def init_ui(self, app):          
@@ -416,9 +420,9 @@ if __name__ == '__main__':
     
     app = App(size=(1200, 900))
     def on_test(event=None):
-        class_view(app)
-    panel = app.add('panel')
-    panel.pack(fill='both', expand=True)
+        class_view()
+    panel = app.add('panel', height=1)
+    panel.pack()
     button = panel.add_button('test', on_test)
     #ClassView(app)
    
