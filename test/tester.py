@@ -1,77 +1,65 @@
 import tkinter as tk
 
-from aui import App, aFrame, ImageObj, Layout, Text, TreeView, FileTreeView
-from aui import MenuBar, Messagebox
+from aui import App, aFrame, ImageObj
+w, h = 1200, 860        
+app = App(size=(w, h))
 
-def add_text(master, TextClass=Text):
-    if TextClass == None:
-        TextClass = Text
-    textbox = TextClass(master)
-    if hasattr(textbox, 'init_dark_config'):
-        textbox.init_dark_config()   
-    textbox.tag_config('find', foreground='black', background='#999')    
-    return textbox
+def test_HV(app):
+    layout = app.get('layout')
+    panel = app.get('panel')
+    layout.add_left(panel, 100)
+    panel.config(bg='lightblue')
+
+    frame = app.get('frame', bg='darkblue')     
+    layout.add_top(frame, 45)    
+  
+    text = app.add('text')
+    text.init_dark_config()
+    msg = app.msg = app.add('msg')
+    tree = app.tree = app.add('filetree')
+    layout.add_HV(tree, text, msg)
     
-def add_msg( master):
-    msg = Messagebox(master)
-    msg.tk.setvar('msg', msg)    
-    master.msg = msg
-    return msg
+def test_image(app):
+    w, h = app.size
+    size = w, h
+    label = app.get('image', size=size) 
+    label.pack(fill='both', expand=True)
+    label.gradient('r', 'GnBu')    
+    label.update()
     
-def add_filetree(master, TreeFrame=FileTreeView):
-    tree = TreeFrame(master)
-    tree.tk.setvar('filetree', tree)   
-    master.filetree = tree
-    master.tree = tree
-    return tree
-    
-def add_tree(master, TreeFrame=TreeView):
-    tree = TreeFrame(master)
-    tree.tk.setvar('filetree', tree)   
-    master.tree = tree
-    return tree
-    
-def add_menu(master):
-    names = 'New,Open,,Close,,History,,Save,Save as,,Undo,Redo,,Copy,Cut,Paste,,'
-    names += 'Add Tab,Remove Tab,,Graph'
-    menubar = MenuBar(master, items=names.split(',')) 
-    return menubar
-    
-def add_set1(app):
-    layout = Layout(app)
-    frame1 = tk.Frame(app)
-    layout.add_left(frame1, 100)
-    
-    frame = tk.Frame(app, bg='#333')
-     
-    layout.add_top(frame, 32) 
-    
-    #layout.add_left(menu, 100)
-    f0 = app.textbox = add_text(app)
-    f0.init_dark_config()
-    f1 = app.msg = add_msg(app)    
-    tree = app.tree = add_tree(app)
-    layout.add_set1(objs=(tree, f0, f1))
+def test_set1(app):
+    app.add_set1()
+    app.tree.set_path('.')
+    app.text.open(__file__)
     
 
-def test_layout():               
-    app = App(title='APP', size=(1500,860))
-    add_set1(app)
+def test_class_view(app):    
+    from aui.ClassTree import class_view
+    class_view(app)
+    
+def test_class_view_button(app):    
+    from aui.ClassTree import class_view
+    def on_test(event=None):
+        class_view()
+    panel = app.add('panel')
+    panel.packfill()    
+    button = panel.add_button('test', on_test)    
+    
+def test(item='hv'):     
+    app.root.title('test APP - ' + item)
+    app.set_icon('puzzle.spng')
+    if item == 'img':
+        test_image(app)  
+    elif item == 'hv':
+        test_HV(app)
+    elif item == 'set1':
+        test_set1(app)
+    elif item == 'class_view':
+        test_class_view(app)    
+    elif item == 'class_view_button':
+        test_class_view_button(app) 
     app.mainloop()
     
-def test_image():
-    w, h = 800, 600
-    size = w, h
-    bkg = ImageObj(size=size) 
-    bkg.get_draw()          
-    bkg.gradient('r', 'GnBu')
-    bkg.draw.rectangle((10, 10, w-10, h-10), outline=(0, 0, 0, 128))
-    bkg.draw.rectangle((9, 9, w-11, h-11), outline=(255, 255, 255, 180))
-    bkg.show()
-    
-if 1:
-    test_layout()
-else:    
-    test_image()
+test('class_view_button')
     
 
