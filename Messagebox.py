@@ -6,6 +6,7 @@ import inspect
 import subprocess
 import tkinter as tk
 import webbrowser
+import numpy as np
 from aui.TextObj import Text
 from aui.Menu import PopMenu
 from fileio import *
@@ -117,8 +118,11 @@ class Cmds():
     def cmd_db(self, arg=None):                    
         from aui import TopFrame
         from DB.dbEditor import CodeFrame
-        frame = TopFrame()
-        frame.add(CodeFrame, arg)        
+        frame = TopFrame()    
+        panel = frame.add('panel')
+        panel.pack(fill='both', expand=True)   
+        frame1 = CodeFrame(panel, arg)
+        frame1.pack(fill='both', expand=True)         
             
     def cmd_run(self, arg=None):                    
         if arg == 'db':
@@ -127,6 +131,43 @@ class Cmds():
         from aui import TestFrame            
         frame = TestFrame(arg)       
         
+    def re_get_prefix(self, text, prefix='class'):
+        if text == '' or text == None:
+           return
+        a = re.findall('(?<=%s)\s+[\w\,]+'%prefix, text)        
+        b = ','.join(a)
+        self.puts(b)
+        
+    def cmd_get(self, cmd):
+        text = self.get_editor_text()
+        if cmd in ['class', 'def', 'import', 'if', 'from']:           
+            return self.re_get_prefix(text, cmd)
+        else:
+            import DB
+            res = DB.get(cmd)
+            self.puts(res)
+                    
+    def cmd_exec(self, cmd, args):
+        name, arg = args.split('(', 1)
+        arg = arg.strip()[0:-1]
+        if cmd == 'db':            
+            import DB            
+            func = eval('DB.' + name)
+            res = func(eval(arg))
+            self.puts(cmd, arg, res)
+        elif cmd == 're':
+            text = self.get_editor_text()
+            if text == '' or text == None:
+                return
+            func = eval('re.' + name)            
+            res = func(eval(arg), text)
+            self.puts(cmd, arg, res)
+        elif cmd == 'np':            
+            func = eval('np.' + name)
+            res = eval(cmd(arg))
+            self.puts(cmd, arg, res)
+            
+
 class Messagebox(Text, PopMenu, Cmds):
     def __init__(self, master, **kw):        
         super().__init__(master, **kw)       
@@ -140,6 +181,7 @@ class Messagebox(Text, PopMenu, Cmds):
         self.add_menu()
         self.vars = {}
         self.click_time = 0
+        self.tester = None
         self.bind('<ButtonRelease-1>', self.on_button1_up)   
         self.bind('<KeyRelease>', self.on_keyup)  
         self.cmds = {}
@@ -152,6 +194,7 @@ class Messagebox(Text, PopMenu, Cmds):
         self.bind_cmd('find', self.cmd_find)
         self.bind_cmd('run', self.cmd_run)
         self.bind_cmd('db', self.cmd_db)
+        self.bind_cmd('get', self.cmd_get)
         #self.pack(fill='both', expand=True)  
         
     def pprint(self, data):
@@ -181,12 +224,22 @@ class Messagebox(Text, PopMenu, Cmds):
         return statusbar
         
     def get_textbox(self, action=None):
+        if self.textbox != None:
+            return self.textbox
         if hasattr(self, 'root') == False:
             self.root = self.winfo_toplevel()
         if hasattr(self.root, 'textbox') == False:
             return None
         self.textbox = self.root.textbox      
         return self.textbox      
+        
+    def get_editor_text(self):
+        target = self.get_textbox()       
+        if target == None:
+            self.puts('No textbox')
+            return ''
+        text = target.get_text()
+        return text
             
     def on_action(self, cmd, arg):     
         #self.puts('no parent action binded')
@@ -261,7 +314,14 @@ class Messagebox(Text, PopMenu, Cmds):
         if cmd in self.cmds:
             self.cmds[cmd](arg)
             return
-        exec(text)  
+        if '.' in cmd:
+            cmd, arg = cmd.split('.', 1)
+            if cmd in ['db', 'np', 're']:
+                return self.cmd_exec(cmd, arg)
+        if self.tester == None:
+            from runfile import ExecCmd        
+            self.tester = ExecCmd(self.get_textbox(), self)
+        self.tester.exec_text(text)  
 
 
         
@@ -271,16 +331,14 @@ class MsgBox(Messagebox):
         pass
         
 #----------------------------------------------------------------------------------------------   
-if __name__ == '__main__':   
-    def test():               
-        from aui import App   
-        frame = App(title='Test Messagebox', size=(1500,860))
-        frame.add_set1()
-        frame.textbox.open(__file__)
-        frame.filetree.set_path('.')
-        frame.mainloop()
-        
-    test()
+if __name__ == '__main__':                  
+    from aui import App   
+    frame = App(title='Test Messagebox', size=(1500,860))
+    frame.add_set1()
+    frame.textbox.open(__file__)
+    frame.filetree.set_path('.')
+    frame.mainloop()
+
 
 
 

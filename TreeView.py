@@ -187,19 +187,25 @@ def dctview(dct=None):
     from aui import App
     app = App('TreeView Editor', size=(500, 800))   
     frame = app.add_test_msg(app)
-    tree = TreeView(frame.bottom)
-    tree.enable_edit()
+    layout = frame.get('layout')
+    panel = frame.get('panel', height=1)
+    layout.add_top(panel, 50)
+    tree = frame.add('tree')
+    layout.add_box(tree)
     if dct == None:
         dct = {'a':123, 'b':['ab', 'cd', 'ef', {1:'test', 2:'pratice', 3:'operation'}]}
-    tree.add_dct('', dct)
+    
           
     buttons = [('Reset', tree.clear), 
                ('New', lambda event=None: tree.add_dct('', dct)),  
                ('Add', tree.new_node),  
                ('Save', tree.on_save),  
                ]
-    for cmd, act in buttons:
-        app.add_button(frame.top, cmd, act, side='left')
+  
+    panel.add_buttons(buttons)
+    tree.enable_edit()
+    tree.pack()
+    tree.add_dct('', dct)
     app.mainloop() 
 
     

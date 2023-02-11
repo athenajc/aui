@@ -2,144 +2,187 @@ import os
 import sys
 import tkinter as tk
 import tkinter.ttk as ttk
-from tkinter import filedialog
-
 from PIL import Image, ImageTk
-from aui import ImageObj, load_svg
-from fileio import *
+from .Menu import Panel
+import DB
 
-imgdct = {}
 thumbdct = {}
-def init_thumb():
-    obj = ImageObj(filename='/home/athena/data/svg/thumb.svg')
-    tkimage = obj.get_tkimage()
-    imgdct['thumb.tkimage'] = tkimage
-    imgdct['thumb.obj'] = obj
-    
-def load_thumb(filename):
-    if filename in thumbdct:
-        return thumbdct[filename]
-    filepath = realpath(filename)
-    img = ImageObj(filepath, size=(90, 90))
-    tkimage = img.get_tkimage()
-    thumbdct[filename] = tkimage
-    return tkimage
-     
 
-class Canvas(tk.Canvas):
-    def __init__(self, master,  **kw):           
-        super().__init__(master, **kw)
-        self.rect = self.create_rectangle        
-        
-class ImageThumb(Canvas):
-    def __init__(self, master, filename, size):
-        w, h = size           
-        super().__init__(master, width=w, height=h)
-        self.size = w, h
-        self.selected = False
-        self.bg = '#f5f3f3'
-        self.outline = '#999' 
-        self.fill = self.bg
-        thumbtk = imgdct.get('thumb.tkimage')
-        self.create_image(0, 0, image=thumbtk, anchor='nw', tag='frame')
-        
-        self.tkimage = load_thumb(filename)
-        self.create_image(w//2-4, h//2-4, image=self.tkimage,  tag='imageobj')      
-       
-        fn = filename.split(os.sep)[-1] 
-        self.create_text(w//2, h-20, text=fn, anchor='n', tag='text', font=('mono',8))
-        self.bind('<Enter>', self.on_enter)
-        self.bind('<Leave>', self.on_leave)      
-        #self.bind('<ButtonRelease-1>', self.on_click)
-        
-    def on_select(self, selected):
-        self.selected = selected        
-        if self.selected:
-            w, h = self.size
-            item = self.create_rectangle(0, 0, w-10, h, fill='gray', outline='#999', tag='selected') 
-            self.tag_lower('selected')
-        else:
-            self.delete('selected')
-            
-    def on_click(self, event):
-        self.selected = not self.selected
-        self.on_select(self.selected)
-       
-    def on_enter(self, event=None):
-        self.itemconfigure('rect', fill='yellow', outline='yellow')        
-        
-    def on_leave(self, event=None):        
-        self.itemconfigure('rect', fill=self.bg, outline=self.outline)  
-        
-class ImageGrid(tk.Frame):
-    def __init__(self, master):   
+
+class ImageThumb(tk.Frame):
+    def __init__(self, master, filename, image=None, name=None, action=None):           
         tk.Frame.__init__(self, master)
-        self.row, self.col = 0, 0
-        self.w = 400
-        self.cellsize = 120
-        self.objs = []
-        self.clear_all()
-        self.bind('<Configure>', self.on_configure)         
+        self.selected = False
+        self.action = action
+        self.name = name
+        self.filename = filename
+        if self.name == None:
+            self.name = os.path.basename(filename)
+        self.bg = self.cget('background')
+        self.config(cursor='hand1')
+        self.selected = False
+        self.rollover = False        
+        self.init_image(filename, image)
+        self.init_canvas(86, 86, self.imgobj)
+ 
+        self.bind('<Enter>', self.on_enter)
+        self.bind('<Leave>', self.on_leave)  
+        self.canvas.bind('<ButtonRelease-1>', self.on_click)          
+        self.event_time = 0
+    
+    def init_canvas(self, w, h, image):    
+        canvas = tk.Canvas(self, width=w, height=h, bg='#fff')
+        canvas.pack(fill='both', expand=True, padx=5, pady=5)
+        canvas.master = self
+        self.canvas = canvas
+        self.image = image
+        self.tkimage = self.image.get_tkimage() 
+        canvas.create_image(12, 5, image=self.tkimage, anchor='nw', tag='imageobj')     
+        fn = os.path.basename(self.filename)
+        n = len(fn)
+        if n > 13:
+            fn = fn[0:13] 
+        canvas.create_text(w/2, h-20, text=fn, anchor='n', tag='text', font=('mono',8))  
         
-    def on_click(self, event):
-        for obj in self.objs:
-            if obj == event.widget:
-                obj.on_select(True)
-            elif obj.selected:
-                obj.on_select(False)        
+    def load(self, filename):
+        filename = os.path.realpath(filename)    
+        image = ImageObj.thumbnail(filename, size=(64, 64))
+        return image     
+        
+    def update_image(self, image):
+        self.image = image
+        self.tkimage = image.get_tkimage()
+        self.canvas.itemconfig('imageobj', image=self.tkimage)
+        
+    def init_image(self, filename, image):       
+        if image == None:
+           image = self.load(filename)     
+        self.tkimage = image.get_tkimage()
+        self.imgobj = image   
+                        
+    def load(self, filename):
+        if filename in thumbdct:
+            return thumbdct[filename] 
+        image = ImageObj.thumbnail(filename, size=(64, 64))
+        thumbdct[filename] = image
+        return image    
+        
+    def update(self):
+        if self.rollover:
+            if self.selected:
+               self.config(bg='#aa0')
+            else:
+               self.config(bg='yellow')
+        else:  
+            if self.selected:
+                self.config(bg='gray')
+            else:    
+                self.config(bg=self.bg)
+        if self.selected:
+            self.config(relief='sunken')
+        else:
+            self.config(relief='flat')                
+        tk.Frame.update(self)    
+        
+    def on_select(self, selected, event=None):        
+        self.set_selected(selected)
             
-    def on_configure(self, event):
-        w, h = event.width, event.height
-        d = w - self.w
-        if d > -5 and d < 5:
-            return
-        self.w = w
-        self.row, self.col = 0, 0
+    def set_selected(self, selected):
+        self.selected = selected        
+        self.update()
+       
+    def on_enter(self, event):
+        self.rollover = True
+        self.update()
+        
+    def on_leave(self, event):
+        self.rollover = False
+        self.update()
+  
+    def on_click(self, event=None):        
+        if self.action != None:
+            event.widget = self
+            self.action(event)
+        else:
+            self.selected = not self.selected
+            self.update()
+                    
+class ImageGrid(Panel):
+    def __init__(self, master, **kw):          
+        super().__init__(master, cursor='arrow', bg='#d9d9d9', **kw)        
+        self.tframe = self
+        self.bg = '#ccc'
+        self.config(state='disable')
+        self.config(bg='#ccc')          
+        self.config(spacing1=10)    # Spacing above the first line in a block of text
+        self.config(spacing2=10)    # Spacing between the lines in a block of text
+        self.config(spacing3=10)    # Spacing after the last line in a block of text
+        self.objs = []
+        self.add_scrollbar()     
+        
+    def on_click(self, event):        
         for obj in self.objs:
-            self.grid_obj(obj)
+            if obj == event.widget:                
+                obj.on_select(True, event)
+            elif obj.selected:
+                obj.on_select(False) 
         
     def clear_all(self):
-        self.row, self.col = 0, 0
-        self.objs = []
-        
-    def is_image(self, fn):
-        ext = fn.split('.')[-1]
-        if ext in ['svg', 'png', 'gif', 'jpg']:
-            return True
+        self.config(state='normal')
+        if self.menu != None:
+            self.delete('1.1', 'end')
         else:
-            return False
+            self.delete('1.0', 'end')       
+        self.config(state='disable')
+        self.objs = []        
             
-    def add_dir(self, path):        
-        lst = os.listdir(path)
-        lst.sort()
-        if path[-1] != os.sep:
-            path += os.sep
-        for s in lst:
-            fn = path + s
-            if os.path.isfile(fn) and self.is_image(fn):
-                self.add_image(fn)
+    def set_list(self, lst):
+        self.clear_all()
+        for fn in lst:
+            self.add_image(fn)         
                 
-    def grid_obj(self, obj):
-        obj.grid(row=self.row, column=self.col, padx=2, pady=2)
-        self.col += 1
-        if self.col * self.cellsize + self.cellsize > self.w:
-            self.row += 1
-            self.col = 0
-            
-    def add_image(self, filename):
-        w = h = self.cellsize
-        obj = ImageThumb(self, filename, size=(w, h))
+    def add_obj(self, obj):
         self.objs.append(obj)
-        self.grid_obj(obj)
-        obj.bind('<ButtonRelease-1>', self.on_click)
+        idx1 = self.index('insert')
+        self.window_create('insert', window=obj)        
+        self.insert('insert', ' ')
+        idx2 = self.index('insert')
+        obj.range = (idx1, idx2)
+        obj.event_time = 0        
+        self.update()
         
+    def add_image(self, filename, image=None, action=None):
+        if action == None:
+            action = self.on_click
+        obj = ImageThumb(self.tframe, filename, image=image, action=action)        
+        self.add_obj(obj)
 
-
+    def remove_image(self, obj):
+        idx1, idx2 = obj.range
+        self.delete(idx1, idx2)
+        self.objs.remove(obj)
+                
+    def get_selection(self, clear=False):
+        lst = []
+        for obj in self.objs:
+            if obj.selected:
+                lst.append(obj)
+        if clear == True:
+            self.clear_selection()         
+        return lst                
+            
+    def clear_selection(self):
+        for obj in self.objs:
+            obj.set_selected(False)
+            
+            
 class DirGrid(ImageGrid):
-    def __init__(self, master):
-        ImageGrid.__init__(self, master)
-        self.folder_image = ImageObj('resource/Folder.png', size=(64, 64))
-        self.path = os.path.realpath('.')
+    def __init__(self, master, **kw):
+        super().__init__(master, **kw)
+        path = DB.get_path('icon')                 
+        self.folder_image = ImageObj(path + '/folder/green.png', size=(64, 64))
+        self.path = os.path.realpath('.')     
+        self.multiselect = False   
         
     def add_folder(self, fn, name=None):
         if name == None:
@@ -208,7 +251,11 @@ class DirGrid(ImageGrid):
         
     def on_click_file(self, event):                
         obj = event.widget
-        obj.set_selected(not obj.selected)
+        if self.multiselect == True:
+            obj.set_selected(not obj.selected)
+        else:
+            self.clear_selection()
+            obj.set_selected(True)
         
     def on_click_folder(self, event):  
         obj = event.widget           
@@ -222,51 +269,39 @@ class DirGrid(ImageGrid):
             obj.set_selected(True)
         obj.event_time = event.time      
         
-
-class GridFrame(tk.Frame):
-    def __init__(self, master, **kw):
-        tk.Frame.__init__(self, master, **kw)
-        init_thumb()
-        self.pack(fill='both', expand=True)
-        frame = tk.Frame(self)
-        frame.pack(fill='x', expand=False)
-        button = tk.Button(frame, text='Add file', bg='#eaeaea')
-        button.pack(side='left', fill='none', expand=False)
-        button.bind('<ButtonRelease-1>', self.on_open_file)
-        self.grid = ImageGrid(self)
-        self.grid.pack(fill='both', expand=True)
         
-        self.grid.add_dir('/home/athena/Images/svg/')        
-         
-    def file_dialog(self, dialog, op='Open', mode='r'):        
-        filepath = os.path.dirname(os.path.realpath('/home/athena/Images/svg/'))        
-        filename = dialog(defaultextension='.svg', mode = mode,
-               filetypes = [('Image files', '.*'), ('all files', '.*')],
-               initialdir = filepath,
-               initialfile = '',
-               parent = self,
-               title = op + ' File dialog'
-               )
-        if filename == None:
-            return None
-        return filename.name                
-                
-    def open_file(self, filename):        
-        self.grid.add_image(filename)
-        
-    def on_open_file(self, event=None):   
-        filename = self.file_dialog(filedialog.askopenfile, 'Open', 'r')   
-        print('Filedialog return (%s)'%filename) 
-        if filename == None or filename == '':
-            return
-        self.open_file(filename)
+if __name__ == "__main__":     
+    path = '/link/data/svg'
+    
+    class Frame(Panel):
+        def __init__(self, master, **kw):
+            super().__init__(master, **kw)    
+            self.root = master.winfo_toplevel()
+            lst = [('Add file', self.on_open_file)]
+    
+            self.add_menu(lst)
+            self.grid = grid = DirGrid(self)  
+            grid.place(x=0, y=45, relwidth=1, relheight=1)       
+            grid.set_dir(path)    
+            self.pack(fill='both', expand=True)
+                    
+        def open_file(self, filename):  
+            self.grid.add_image(filename)
             
-if __name__ == '__main__':   
-    from aui import App
-    app = App('Image Grid', size=(1000, 1000))
+        def on_open_file(self, event=None):   
+            filename = self.root.ask('openfilename', ext='img')
+            print('Filedialog return ', filename) 
+            if filename == None or len(filename) == 0:
+                return
+            self.open_file(filename)            
     
-    frame = GridFrame(app)
-    app.mainloop()
-    
+    app = App(title='Test FileDialog', size=(800,900))        
+    frame = Frame(app)        
+    app.mainloop()    
+              
+
+ 
+
+
 
 

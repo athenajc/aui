@@ -1,3 +1,4 @@
+import os
 import numpy as np
 from scipy.special import comb
 import xml.etree.ElementTree as ET
@@ -13,6 +14,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.patches import Polygon 
 from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 import aui
+from aui import ImageObj
 
 MOVETO, LINETO, CURVE3, CURVE4, CLOSEPOLY = 1, 2, 3, 4, 79   
 
@@ -103,24 +105,31 @@ class FigureAgg(object):
         self.size = (w, h)
         figure = Figure(figsize=self.size, dpi=dpi, frameon=False)    
         FigureCanvasAgg(figure)        
+        
         self.init_figure(figure)
         return figure
         
+    def init_ax(self):
+        ax = self.ax                  
+        w, h = self.size              
+        x = [0, w, w, 0, 0]
+        y = [0, 0, h, h, 0]
+        ax.plot(x, y) 
+        #ax.clear()
+        ax.set_axis_off()
+        ax.invert_yaxis() 
+        self.figure_canvas.draw()
+        
     def init_figure(self, figure):
-        figure.clear()
-        w, h = self.size
+        figure.clear()        
         figure.patch.set_visible(False)
-        ax = figure.add_axes([0, 0, 1, 1]) 
+        self.ax = ax = figure.add_axes([0, 0, 1, 1]) 
         ax.set_ymargin(-0.01)
         ax.set_xmargin(-0.01)
         ax.axis('off') 
-        ax.invert_yaxis()                 
-        x = [0, w, w, 0, 0]
-        y = [0, 0, h, h, 0]
-        ax.plot(x, y)                
-        figure.canvas.draw()
+        ax.invert_yaxis() 
         self.figure_canvas = figure.canvas
-        self.ax = ax        
+        self.init_ax()
         
     def gradient(self, mode, colorname):
         w0, h0 = self.size
@@ -175,7 +184,8 @@ class FigureTk(FigureAgg):
         return self.ax
         
     def clear(self):
-        self.figure.clear()
+        self.ax.clear()
+        self.init_ax()
         
     def draw(self):
         self.update()
@@ -186,8 +196,9 @@ class FigureTk(FigureAgg):
 
     def create_figure(self, w, h, dpi, pos):
         self.size = (w, h)
-        figure = Figure(figsize=(w, h), dpi=dpi, frameon=False)    
+        figure = Figure(figsize=(w, h), dpi=dpi, frameon=False)          
         figure.patch.set_visible(False)
+        
         figure_canvas = FigureCanvasTkAgg(figure, self.canvas)      
         self.tkphoto = figure_canvas._tkphoto     
         x, y = pos
@@ -200,7 +211,7 @@ class FigureTk(FigureAgg):
             font = ('Sans-Serif', 15)
         fname = font[0]
         size = font[1]
-        print(text, x, y, size)
+     
         obj = self.ax.text(x, y, text, fontsize=size, fontfamily=fname, color=color)    
         #obj = self.ax.text(x, y, text, fontsize=size, color=color)    
         obj.mode = 'text'    
@@ -222,25 +233,40 @@ class FigureTk(FigureAgg):
             patch.set_points(points)
         self.update()  
         
+    def add_image(self, filename, pos=None, box=None):                         
+        path = os.path.realpath(filename)
+        img = ImageObj(path)
+        if pos != None:
+            x, y = pos
+            w, h = img.size
+            box = x, y, w, h
+        
+        if box != None:
+            x, y, w, h = box
+            dpi = self.dpi                
+            self.ax.imshow(img.pilimage, extent=[x/self.dpi, (x+w)/self.dpi, y/self.dpi, (y+h)/self.dpi]) 
+        else:
+            self.ax.imshow(img.pilimage, extent=[0, 1, 0, 1], zorder=99) 
+        self.update()
+        
 class FigureCanvas(tk.Canvas):
-    def __init__(self, master, size, **kw):
+    def __init__(self, master, size=(1024, 768), **kw):
         super().__init__(master, **kw) 
         self.size = size
         self.line_width = 1.5
         self.points = []
         self.patches = []
         self.actions = []
-        self.mode = 'line'
+        self.mode = 'curve'
         self.patch = None
-        self.statusbar = None
         self.font = ('Sans-Serif', 16)
         self.textobj = None
         self.imageobj = None
-        self.pause = False
         self.dpi = 100
         self.color = '#333'
         self.input_text = self.mode
-        self.figure = FigureTk(self, size)    
+        self.figure = self.fig = FigureTk(self, size)    
+        self.ax = self.fig.ax
         self.bind('<B1-Motion>', self.on_button_motion)
         self.bind('<ButtonPress-1>', self.on_mousedown) 
         self.bind('<ButtonRelease-1>', self.on_mouseup) 
@@ -320,16 +346,7 @@ class FigureCanvas(tk.Canvas):
             self.figure.update()       
     
     def get_color(self):
-        return self.color     
-        
-    def do_undo(self, event=None):
-        pass
-        
-    def do_redo(self, event=None):
-        pass
-                   
-    def do_crop(self, box=None):
-        pass 
+        return self.color
         
     def new_image(self, size=None):
         if size == None:
@@ -343,7 +360,7 @@ class FigureCanvas(tk.Canvas):
         self.filename = ''
         w, h = size
         self.set_size(w, h) 
-        self.imageobj = aui.ImageObj(size=size)   
+        self.imageobj = ImageObj(size=size)   
         self.update_tkimage()    
         
     def on_resize_image(self, size):
@@ -368,19 +385,10 @@ class FigureCanvas(tk.Canvas):
         self.lower('imageobj')           
        
     def save_image(self, fn):        
-        w, h = self.size
-        image = self.figure.get_image()
-        print('image', image.size, image.mode, 'self', self.size)
-        if self.imageobj == None:
-            image.save(fn)
-        else:
-            print(self.imageobj.image.mode)
-            self.imageobj.image.alpha_composite(image)
-            self.imageobj.save(fn)
-        self.filename = fn
+        self.figure.save(fn)        
         
     def on_clear_image(self):
-        pass
+        self.figure.clear()
         
     def clear_all(self):
         pass
@@ -408,21 +416,25 @@ class FigureCanvas(tk.Canvas):
         if svar == None:
             return 8
         v = svar.get()
-        return int(v)                     
-                   
-    def set_status(self, item, value):
-        if self.statusbar != None:
-           self.statusbar.set_var(item, str(value))
-           
-    def set_pause(self, pause):
-        self.pause = pause
+        return int(v)     
+        
+    def add_image(self, filename, tag='img'):
+        self.figure.add_image(filename, pos=(100, 100))
+            
+    def set_bkg(self, filename, bright=1):
+        self.figure.add_image(filename)
 
 if __name__ == '__main__':   
     from aui import App
     size = (800, 600)
     app = App('ImageCanvas', size)
     canvas = FigureCanvas(app, size, bg='#eaeaea') 
-    canvas.pack(fill='both', expand=True)    
+    canvas.pack(fill='both', expand=True)   
+    canvas.fig.clear() 
+    fn = os.path.realpath('/home/athena/data/gallery/Arrow-Blue.svg')
+    fn = '/home/athena/data/gallery/bkg/96.jpg'
+    canvas.set_bkg(fn)
+    #canvas.save_image('/home/athena/tmp/test_fig.png')
     app.mainloop()
     
 

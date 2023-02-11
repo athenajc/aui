@@ -172,8 +172,11 @@ def listdir(path, ext='.'):
            lst.append(fn)
     return lst
 
-def fread(filename):
-    filename = realpath(filename)      
+def fread(filename, path = None):
+    if path != None:
+        filename = path + os.sep + filename
+    else:
+        filename = realpath(filename)      
     text = ''
     try:
         with open(filename, 'r') as f:
@@ -183,8 +186,11 @@ def fread(filename):
         print(e)                     
     return text
 
-def fwrite(filename, text):
-    filename = realpath(filename)   
+def fwrite(filename, text, path = None):
+    if path != None:
+        filename = path + os.sep + filename
+    else:
+        filename = realpath(filename)     
     try:   
         with open(filename, 'w') as f:
             f.write(text)

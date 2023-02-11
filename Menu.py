@@ -175,13 +175,18 @@ def add_combo(master, text='', values=[]):
     combo.set_text(text)
     return combo
     
-def add_sep(frame, w=1, h=100, padx=1, pady=1):
-    return tk.Frame(frame, width=w, height=h, bg='#979899')
+def add_sep(panel, w=1, h=100, padx=1, pady=1, bg=None):
+    if bg == None:
+        bg = panel.cget('bg')
+    frame = tk.Frame(panel, width=w, height=h, bg=bg) #'#979899')
+    panel.add(frame)
 
 
 class PopMenu():
-    def add_popmenu(self, cmds=[]):
-        menu = tk.Menu(self)
+    def add_popmenu(self, cmds=[], master=None):
+        if master == None:
+            master = self
+        menu = tk.Menu(master)
         for p in cmds:
             if p[0] == '-':
                 menu.add_separator()
@@ -189,8 +194,8 @@ class PopMenu():
                 menu.add_command(label=p[0], command=p[1])         
         self.menu = menu   
         self.menu.show = False
-        self.bind('<ButtonRelease-1>', self.unpost_menu)
-        self.bind('<ButtonRelease-3>', self.post_menu)             
+        master.bind('<ButtonRelease-1>', self.unpost_menu)
+        master.bind('<ButtonRelease-3>', self.post_menu)             
 
     def unpost_menu(self, event=None):
         if self.menu.show == False:
@@ -266,30 +271,29 @@ class MenuBar(tk.Frame):
         self.button = {}
         self.style = style
         self.relief = relief
-        if style == 'h':
-            self.side = 'left'
-            self.fill = 'y'
-        else:
-            self.side = 'top'
-            self.fill = 'x'
+        self.bg = self.cget('bg')
+        self.sep_color = '#979899'
         self.add_buttons(items, **kw)
         
     def reset(self):        
         for widget in self.pack_slaves():
             widget.destroy()
-        self.buttons = {}
+        self.buttons = {}        
         
     def add_button(self, key, action=None, **kw):
         button = Button(self, text=key, relief=self.relief, action=action, **kw)
-        button.pack(side=self.side, fill=self.fill, expand=False) 
+        if self.style == 'v':
+            button.pack(side='top', fill='x')
+        else:    
+            button.pack(side='left', fill='y')        
         self.button[key] = button
         
     def add_sep(self, h=1):
         if self.style == 'v':
-           sep = tk.Frame(self, width=100, height=1, bg='#979899')
+           sep = tk.Frame(self, width=100, height=1, bg=self.sep_color)
            sep.pack(side='top', fill='x', pady=5) 
         else:
-           sep = tk.Frame(self, width=1, height=40, bg='#979899')
+           sep = tk.Frame(self, width=1, height=40, bg=self.sep_color)
            sep.pack(side='left', fill='y', padx=5) 
         
     def add_buttons(self, items, **kw):        
@@ -310,24 +314,139 @@ class MenuBar(tk.Frame):
     def bind_action(self, item, action):
         self.button[item].bind('<ButtonRelease-1>', action) 
          
+
+
+class ObjCommon():    
+    from tkinter import filedialog as fd
+    
+    filetypes = {
+        'py': ('Python files', '*.py, *.txt'),
+        'txt': ('Text files', '*.txt, *.py'),
+        'img': ('Image files', '*.png *.svg *.jpg'),
+        'image': ('Image files', '*.png *.svg *.jpg'),
+        'all': ('All files', '*.*'),
+        '*': ('All files', '*.*') 
+    }    
+        
+    def get_filetypes(self, ext):
+        ftlst = []
+        for name in [ext, 'all']:
+            p = filetypes.get(name, (name, '*.'+name))        
+            ftlst.append(p)  
+        return ftlst
+    
+    def askopenfile(self, title='Open a file', path='/link', ext='py'):          
+        return fd.askopenfile(title=title, initialdir=path, filetypes=self.get_filetypes(ext))
+        
+    def askopenfilename(self, title='Open an image', path=None, ext='img'):          
+        if path == None:
+           if ext == 'img':
+              path =  '/link/data'
+           else:
+              path = '/link'
+        return fd.askopenfilename(title=title, initialdir=path, filetypes=self.get_filetypes(ext))
+                
+    def askopenfiles(self, title='Open files', path='/link', ext='py'):          
+        return fd.askopenfiles(title=title, initialdir=path, filetypes=self.get_filetypes(ext))
+        
+    def asksaveasfile(self, title='Save as file', path='/link', ext='py'):          
+        return fd.asksaveasfilename(title=title, initialdir=path, filetypes=self.get_filetypes(ext))
+    
+    def askstring(self, title, prompt):
+        from tkinter import simpledialog
+        answer = simpledialog.askstring(title, prompt)
+        return answer
+
+    def showinfo(self, title=None, msg=None, **options):
+        from tkinter.messagebox import showinfo
+        showinfo(title=title, message=msg, **options)
+        
+    def get_root(self):
+        return self.winfo_toplevel()
+        
+    def packfill(self, obj=None):
+        if obj == None:
+            self.pack(fill='both', expand=True)
+        else:    
+            obj.pack(fill='both', expand=True)
+        
+    def ask(self, op='openfile', **kw):
+        if 'open' in op:
+            if op == 'openfile':
+                return askopenfile(**kw)
+            if op == 'openfilename':
+                return askopenfilename(**kw)    
+            if op == 'openfiles':
+                return askopenfiles(**kw)            
+        if op == 'savefile' or op == 'saveasfile':
+            return asksaveasfile(**kw)
+        if op == 'string':
+            return askstring(**kw)    
+            
+
+    def get_obj(self, name, **kw):        
+        master = self
+        if name == 'frame':
+            from aui.app import aFrame
+            return aFrame(master, **kw)
+        elif name == 'layout':
+            from aui.Layout import Layout
+            return Layout(master, **kw)    
+        elif name == 'msg':
+            from aui.Messagebox import Messagebox
+            return Messagebox(master)
+        elif name == 'tree':
+            from aui.TreeView import TreeView
+            return TreeView(master)
+        elif name == 'text':
+            from aui.TextObj import Text
+            return Text(master, **kw)
+        elif name == 'filetree':
+            from aui.FileTree import FileTreeView
+            return FileTreeView(master)
+        elif name == 'panel':
+            from aui.Menu import Panel
+            return Panel(master, **kw)    
+        elif name == 'menu':
+            from aui.Menu import MenuBar
+            return MenuBar(master, **kw)    
+        elif name == 'canvas':
+            return Canvas(master, **kw)      
+        elif name == 'image':
+            from aui.app import ImageLabel
+            widget = ImageLabel(master, **kw)
+
          
-class Panel(tk.Text):
+class Panel(tk.Text, ObjCommon):
     def __init__(self, master, style='h', items=None, size=None, **kw):        
         super().__init__(master, **kw)        
         self.size = size
         self.style = style
+        self.root = master.winfo_toplevel()
         self.relief = 'flat'
         self.master = master
-        
+        self.auto_fill_objs = []
         self.base = self
-        self.bg = master.cget('background')
-        self.config(background = master.cget('background'))
-        self.config(state= "disabled", font=(20), cursor='arrow')
-
+        self.menu = None
+        self.bg = self.cget('background')
+        self.config(background = self.bg)
+        self.config(state= "disabled", font=(20), cursor='arrow')        
         self.widgets = []
         self.limit = 1000
         if items != None:
             self.add_menu(items)
+        self.get = self.get_obj    
+        self.bind('<Configure>', self.on_configure)
+        
+    def on_configure(self, event=None):
+        if self.auto_fill_objs == []:
+            return
+        for obj in self.auto_fill_objs:
+            if hasattr(obj, 'font_width'):
+                w = obj.font_width
+                obj.config(width = ((event.width-w)//w-1))    
+            else:
+                obj.config(width = event.width)  
             
     def add_scrollbar(self):
         from aui.aui_ui import ScrollBar
@@ -351,35 +470,43 @@ class Panel(tk.Text):
         obj.config(state= "disabled")
         
     def add_space(self, n = 1):
-        if self.style == 'h':
+        if self.style == 'v':
             obj = tk.Label(self, text='', height=n, bg=self.bg)
         else:
             obj = tk.Label(self, text='', width=n, bg=self.bg)
         self.add(obj)        
         
-    def add_sep(self):
-        if self.size != None:
-            w, h = self.size
+    def newline(self, w=1000, h=1, bg=None):
+        if bg == None:
+            bg = self.cget('bg')
+        frame = tk.Frame(self, width=w, height=h, bg=bg)  
+        self.add(frame)
+    
+    def add_sep(self, size=None):
+        if size == None:
+            if self.size != None:
+                w, h = self.size
+            else:
+                w, h = 100, 50
         else:
-            w, h = 100, 50
-            
+            w, h = size    
         if self.style == 'v':
-            sep = add_sep(self, w, 1, pady=15)
-            self.add(sep)   
+            add_sep(self, w, 1, pady=15)              
         else:
             self.add_space(1) 
-            sep = add_sep(self, 1, h)
-            self.add(sep)   
+            add_sep(self, 1, h)
             self.add_space(1)         
        
     def insert_widget(self, index, widget):        
         if type(widget) == str:
             self.insert('end', widget)
+            widget.panelpos = self.index('insert')
         else:
             self.widgets.append(widget)
             self.window_create(index, window=widget)
+            widget.panelpos = self.index('insert')
         
-    def add(self, widget):
+    def add(self, widget, fill=None):
         if type(widget) == list:
             for obj in widget:
                 self.insert_widget('end', obj)
@@ -387,6 +514,8 @@ class Panel(tk.Text):
             self.insert('end', widget)
         else:     
             self.insert_widget('end', widget)
+            if fill == 'x' or fill == True:
+                self.auto_fill_objs.append(widget)
         if self.style == 'v':
             self.insert('end', '\n')
         
@@ -394,8 +523,8 @@ class Panel(tk.Text):
         self.menuitems = items       
         if style == None:
             style = self.style
-        menu = MenuBar(self, style=style, items=items)
-        self.insert_widget(pos, menu)
+        self.menu = menu = MenuBar(self, style=style, items=items)
+        self.insert_widget(pos, menu)        
         return menu
         
     def add_options(self, label='', items=[], act=None):
@@ -439,14 +568,16 @@ class Panel(tk.Text):
             self.insert('end', '\n')        
         return button
         
-    def add_buttons(self, buttons, style='h', **kw):
+    def add_buttons(self, buttons, style='h', space=0, **kw):
         self.add_sep()
         lst = []   
         for a, b in buttons:   
-            if a == '-' or a == '':
+            if a.strip() == '-' or a.strip() == '':
                 self.add_sep()
                 continue        
             btn = self.add_button(a, b, **kw)   
+            if space != 0:
+               self.add_space(space)
             lst.append(btn) 
         self.add_sep()
         return lst
@@ -483,7 +614,7 @@ class Panel(tk.Text):
     
     def add_colorbar(self, act=None): 
         from aui import on_colorbutton       
-        self.add_sep()
+
         colors = eval(DB.get_cache('colors'))
         lst = []
         for color in colors:
@@ -494,11 +625,12 @@ class Panel(tk.Text):
             lst.append(button)
         self.add_button('Update DB', self.on_commit_colors)     
         self.buttons =  lst
-        self.add_sep()
+
 
 #----------------------------------------------------------------------------------      
 if __name__ == '__main__':   
-    from aui import App, showinfo
+    from aui import App
+    app = App(title='APP', size=(1024, 768))    
     
     def on_test(event):
         s = event.widget.text
@@ -507,7 +639,8 @@ if __name__ == '__main__':
             menubar.reset()
             menubar.add_buttons([('Test', on_test), ('ABCD', on_test)])
         else:
-            showinfo('[ %s ] selected' % s, s + '\n' + str((event)))
+            text = s + '\n' + str(event)
+            app.showinfo(title=s, msg=text)
         
     def test_menubar(frame):                 
         names = 'Reset,Open,,Close,,History,,Save,Save as,,Undo,Redo,,Copy,Cut,Paste,,'
@@ -526,13 +659,16 @@ if __name__ == '__main__':
         panel.pack(side='left')
  
         
-    app = App(title='APP', size=(1024, 768))     
+     
     test_menubar(app)  
     panel = Panel(app)
     combo = panel.add_combo(label='dbFile:', values=['code', 'note'])
     options = panel.add_options(items=['code', 'note'] )
     panel.add_colorbar()
-    panel.pack()
+    msg = panel.get('msg')
+    panel.add(msg, fill='x')
+    
+    panel.packfill()
     app.mainloop() 
 
 

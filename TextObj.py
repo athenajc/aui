@@ -650,6 +650,7 @@ class TextUtils(PopMenu, TextSearch, TextTag, TextTab):
         self.pattern = None
         self.config(foreground='#121')
         self.config(background='#f5f5f3')    
+        self.config(padx = 5)
         self.tag_config('bold', font=('bold'), background='#ddd')  
         self.tag_config('find', font=('bold'), foreground='#111', background='yellow')
         self.get_font_width()             
@@ -680,12 +681,13 @@ class TextUtils(PopMenu, TextSearch, TextTag, TextTab):
         self.keywords = keys.split('|')
         self.init_config()        
         self.init_pattern()   
+        
 
         
 class TextObj(tk.Text, TextUtils):
     def __init__(self, master, scroll=True, fill=True, **kw):
         super().__init__(master, **kw)
-        self.init_all()               
+        self.init_all()                       
         if fill == True:
            self.place(x=0, y=0, relwidth=1, relheight=1) 
         if scroll == True:
@@ -703,9 +705,11 @@ class TextObj(tk.Text, TextUtils):
 
         
 class Text(TextObj):
-    def __init__(self, master, scroll=True, fill=True, **kw):
+    def __init__(self, master, scroll=True, fill=True, dark=False, **kw):
         super().__init__(master, scroll, fill, **kw)
         self.init_code_editor()
+        if dark == True:
+            self.init_dark_config()
  
 
 
@@ -782,19 +786,29 @@ TagTextObj = Text
 
 if __name__ == '__main__':    
     from aui import App, Layout   
+    import DB
+    app = App(title='Test Textobj', size=(1600, 1080))  
     
+    def on_select(event):        
+        obj = event.widget
+        path, tag = obj.getvar('<<SelectFile>>')
+        app.msg.puts(path)
+        app.text.open(path)        
+
     if 0:
-        app = App(title='Test Textobj', size=(800,860))
+
         text = Text(app)
         text.init_dark_config()
         text.open(__file__)
     else:
-        app = App(title='Test Textobj', size=(800,860))
-        layout = Layout(app)
-        layout.add_set1(app)
-        #layout.add_textmsg(app)
+              
+        app.add_set1(app)
         app.textbox.open(__file__)
-        app.filetree.set_path('.')
+        path = DB.get_path('local')
+        tree = app.filetree
+        tree.set_path(path)
+        tree.click_select = 'click' 
+        tree.bind('<<SelectFile>>', on_select)
 
     app.mainloop()        
 

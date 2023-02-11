@@ -3,8 +3,6 @@ import sys
 import tkinter as tk
 from tkinter import ttk
 import time  
-from aui import MenuBar, Text, App, TreeView, FileTreeView, Messagebox, TreeView
-
 
 def get_box( box):  
     lst = []    
@@ -67,6 +65,7 @@ class SpliterVarH(tk.Frame):
 class AuiObj():
     def add_textobj(self, master, TextClass=None):
         if TextClass == None:
+            from .TextObj import Text
             TextClass = Text
         textbox = TextClass(master)
         if hasattr(textbox, 'init_dark_config'):
@@ -75,26 +74,30 @@ class AuiObj():
         return textbox
         
     def add_msg(self, master):
+        from .Messagebox import Messagebox
         msg = Messagebox(master)
         msg.tk.setvar('msg', msg)    
         master.msg = msg
         return msg
         
-    def add_filetree(self, master, TreeFrame=FileTreeView):
-        tree = TreeFrame(master)
+    def add_filetree(self, master):
+        from .FileTree import FileTreeView
+        tree = FileTreeView(master)
         tree.tk.setvar('filetree', tree)   
         master.filetree = tree
         master.tree = tree
         return tree
         
-    def add_tree(self, master, TreeFrame=TreeView):
-        tree = TreeFrame(master)
+    def add_tree(self, master):
+        from .TreeView import TreeView
+        tree = TreeView(master)
         tree.tk.setvar('filetree', tree)   
         master.filetree = tree
         master.tree = tree
         return tree
         
     def add_menu(self, master):
+        from .Menu import MenuBar
         names = 'New,Open,,Close,,History,,Save,Save as,,Undo,Redo,,Copy,Cut,Paste,,'
         names += 'Add Tab,Remove Tab,,Graph'
         menubar = MenuBar(master, items=names.split(',')) 
@@ -302,6 +305,19 @@ class Layout(AuiObj):
         self.add(f1, box=(xsep1+'+w8', top, xsep2, bottom))       
         self.add(f2, box=(xsep2+'+w8', top, right, bottom)) 
         
+    def add_H4(self, f0, f1, f2, f3, sep=(0.2, 0.6, 0.8), box=None):
+        if box == None:
+            box = self.box
+        left, top, right, bottom = box
+        sep1, sep2, sep3 = sep
+        xsep1 = self.add_xsep(sep1, xrange=(0.11, sep1+0.2), box=box)
+        xsep2 = self.add_xsep(sep2, xrange=(sep2-0.2, sep2+0.2), box=box)   
+        xsep3 = self.add_xsep(sep3, xrange=(sep3-0.2, 0.97), box=box) 
+        self.add(f0, box=(left, top, xsep1, bottom))
+        self.add(f1, box=(xsep1+'+w8', top, xsep2, bottom))       
+        self.add(f2, box=(xsep2+'+w8', top, xsep3, bottom)) 
+        self.add(f3, box=(xsep3+'+w8', top, right, bottom)) 
+        
     def add_HV(self, f0, f1, f2, sep=(0.3, 0.7), xrange=(0.1, 0.8), yrange=(0.2, 0.9), box=None):
         if box == None:
             box = self.box
@@ -326,11 +342,6 @@ class Layout(AuiObj):
         self.add(f1, box=(xsep1+'+w8',          top, xsep2, ysep))
         self.add(f2, box=(xsep1+'+w8', ysep + '+h8', xsep2, bottom)) 
         self.add(f3, box=(xsep2+'+w8', top, right, bottom)) 
-
-    def add_set1(self, objs=(), seph=0.2, sepv=0.7, box=None):            
-        f0, f1, f2 = objs
-        sep = (seph, sepv)
-        self.add_HV(f0, f1, f2, sep, box)    
     
     def add_box(self, frame, box=None):
         if box == None:

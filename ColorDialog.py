@@ -197,7 +197,7 @@ class ColorDialog(Dialog):
         
     def body(self, master):       
         canvas = ColorCanvas(master, self.color)
-        canvas.config(width=600, height=400)
+        canvas.config(width=600, height=450)
         canvas.pack(fill='both', expand=True)
         self.canvas = canvas
         
@@ -231,12 +231,14 @@ def color_canvas(panel, button, size=(600, 400)):
 if __name__ == '__main__':
     from aui import App          
     
-    app = App(size=(600, 500))
+    app = App(size=(600, 700))
     panel = app.add('panel')
     panel.pack()
     button = panel.add_button('test', on_colorbutton)
     button.color = button.cget('bg')
     button.panel = panel
+    panel.add_colorbar()
+    panel.add_sep(size=(1000, 30))
     color_canvas(panel, button, app.size)
     app.mainloop()
 

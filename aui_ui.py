@@ -6,7 +6,7 @@ import time
 
 
         
-class TwoFrame(tk.Frame):
+class TwoFrame(tk.Frame):    
     def __init__(self, master, type='v', sep=0.3, **kw):
         tk.Frame.__init__(self, master, **kw)  
         if type == 'left' or type == 'leftbar':
@@ -20,39 +20,43 @@ class TwoFrame(tk.Frame):
         else:
             self.init_v(sep)
             
+    def get_frame(self):
+        from aui.app import aFrame
+        return aFrame(self)
+        
     def init_leftbar(self, sep):
         w = sep*400
-        frame1 = tk.Frame(self)
+        frame1 = self.get_frame()
         frame1.place(x=0, y=0, width=w, relheight=1)
-        frame2 = tk.Frame(self)
+        frame2 = self.get_frame()
         frame2.place(x=w, y=0, relwidth=1, relheight=1)
         self.left = frame1
         self.right = frame2 
         
     def init_right(self, sep):  
-        frame1 = tk.Frame(self)
+        frame1 = self.get_frame()
         frame1.pack(side='left', fill='both', expand=True)
-        frame2 = tk.Frame(self)
+        frame2 = self.get_frame()
         frame2.pack(side='left', fill='y', expand=False)
         self.left = frame1
         self.right = frame2 
      
     def init_topbar(self, sep):
         h = sep * 300
-        frame1 = tk.Frame(self)
+        frame1 = self.get_frame()
         frame1.place(x=0, y=0, relwidth=1, height=h)
-        frame2 = tk.Frame(self)
+        frame2 = self.get_frame()
         frame2.place(x=0, y=h, relwidth=1, relheight=1) 
         self.top = frame1
         self.bottom = frame2
         
     def init_v(self, ysep): 
-        frame0 = tk.Frame(self)
+        frame0 = self.get_frame()
         frame0.place(x=0, y=0, relwidth=1, relheight=ysep)
         framespliter = tk.Frame(self, relief='raise', bd=1)
         framespliter.place(x=0, rely=ysep, relwidth=1, height=8)
         framespliter.config(cursor='hand2')
-        frame1 = tk.Frame(self)
+        frame1 = self.get_frame()
         dh = 8/1000
         frame1.place(x=0, rely=ysep+dh, relwidth=1, relheight=1-ysep-dh)
         framespliter.bind('<B1-Motion>', self.drag_spliter_v)
@@ -79,12 +83,12 @@ class TwoFrame(tk.Frame):
         self.f1.place(rely=y1, relheight=1-y1)       
     
     def init_h(self, xsep):
-        frameleft = tk.Frame(self)
+        frameleft = self.get_frame()
         frameleft.place(x=0, y=0, relwidth=xsep, relheight=1)
         framespliter = tk.Frame(self, relief='raise', bd=1)
         framespliter.place(relx=xsep, y=0, width=6, relheight=1)
         framespliter.config(cursor='hand2')
-        frameright = tk.Frame(self)
+        frameright = self.get_frame()
         dw = 6/1600
         frameright.place(relx=xsep+dw, y=0, relwidth=1-xsep-dw, relheight=1)
         framespliter.bind('<B1-Motion>', self.drag_spliter_h)
@@ -286,15 +290,8 @@ class FrameLayout():
    
 
 if __name__ == '__main__':
-    def test_frame(title='Test', size=(900, 900)):
-        from aui import App, Panel, Layout
-        app = App(title, size)     
-        
-        app.add_set1()
-        #app.textbox.open(__file__)
-        #frame = app.twoframe(app, 'right', 32/800)
-        #panel = Panel(frame.left)
-        #panel.add_scrollbar(frame.right)
-        app.mainloop()
-        
-    test_frame()
+    from aui import App
+    app = App(title='Test', size=(900, 900))             
+    app.add_test_msg()
+    app.mainloop()
+

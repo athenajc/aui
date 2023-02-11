@@ -218,35 +218,35 @@ class FileTreeView(TreeView, PopMenu):
         
 
 if __name__ == '__main__':   
-    from aui import aFrame, App
-
-    class TestFrame(aFrame):
-        def __init__(self, master):       
-            super().__init__(master)
-            self.add_set1()                          
-            self.filetree.click_select = 'click'   
-            self.filetree.set_path('.')
-            self.puts = self.msg.puts
-            self.bind_all('<<SelectFile>>', self.on_select_file)  
+    class Tester():
+        def __init__(self, app):  
+            self.app = app
+            self.root = app.get_root()
+            app.add_set1()                          
+            app.tree.click_select = 'click'   
+            app.tree.set_path('.')
+            self.puts = app.msg.puts
+       
+            app.bind_all('<<SelectFile>>', self.on_select_file)  
             self.open_file(__file__)        
             
         def open_file(self, filename): 
             filename = os.path.realpath(filename)
-            self.textbox.open(filename)
-            self.event_generate("<<SetText>>")
-            self.winfo_toplevel().title(filename)
+            self.app.textbox.open(filename)
+            self.app.event_generate("<<SetText>>")
+            self.root.title(filename)
 
         def on_select_file(self, event=None):      
             path, tag = event.widget.getvar('<<SelectFile>>')
             if tag == 'file':
                self.open_file(path)                 
                
-    def test():               
-        from aui import App   
-        frame = App(title='Test FileTree', size=(1500,960), Frame = TestFrame)  
-        frame.mainloop()
-        
-    test()
+            
+    from aui import App   
+    app = App(title='Test FileTree', size=(1500,960))  
+    Tester(app)
+    app.mainloop()
+
 
 
 
