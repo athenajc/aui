@@ -442,11 +442,14 @@ class Panel(tk.Text, ObjCommon):
         if self.auto_fill_objs == []:
             return
         for obj in self.auto_fill_objs:
-            if hasattr(obj, 'font_width'):
-                w = obj.font_width
-                obj.config(width = ((event.width-w)//w-1))    
+            if 'x' in obj.fill:
+                if hasattr(obj, 'font_width'):
+                    w = obj.font_width
+                    obj.config(width = ((event.width-w)//w-1))    
+                else:
+                    obj.config(width = event.width)  
             else:
-                obj.config(width = event.width)  
+               obj.config(height = event.height - 30)           
             
     def add_scrollbar(self):
         from aui.aui_ui import ScrollBar
@@ -513,8 +516,11 @@ class Panel(tk.Text, ObjCommon):
         elif type(widget) == str:
             self.insert('end', widget)
         else:     
+            widget.panelpos = self.index('end')
             self.insert_widget('end', widget)
-            if fill == 'x' or fill == True:
+            if fill != None:
+                widget.fill = fill
+                widget.y = int(self.index('end').split('.', 1)[0]) * 24
                 self.auto_fill_objs.append(widget)
         if self.style == 'v':
             self.insert('end', '\n')
@@ -537,9 +543,7 @@ class Panel(tk.Text, ObjCommon):
         
     def add_combo(self, label = '', text='', values=[], act=None):
         if label != '':
-            self.add_label(label)
-            self.add_space()
-            
+            self.add_label(label)            
         combo = add_combo(self, text, values)
         if act != None:
             combo.bind('<Return>', act) 
