@@ -45,9 +45,13 @@ def test_class_view_button(app):
     panel.packfill()    
     button = panel.add_button('test', on_test)    
     
-def test(item='hv'):     
-    app.root.title('test APP - ' + item)
-    app.set_icon('puzzle.spng')
+
+app.root.title('test APP')
+app.set_icon('puzzle.spng')
+
+def on_test(event):     
+    item = event.widget.text
+    app.root.title('test App - ' + item)
     if item == 'img':
         test_image(app)  
     elif item == 'hv':
@@ -57,9 +61,13 @@ def test(item='hv'):
     elif item == 'class_view':
         test_class_view(app)    
     elif item == 'class_view_button':
-        test_class_view_button(app) 
-    app.mainloop()
-    
-test('class_view_button')
+        test_class_view_button(app)         
+
+
+panel = app.get('panel', height=1)
+panel.pack()
+for item in ['img', 'hv', 'set1', 'class_view', 'class_view_button']:
+    panel.add_button(item, on_test)    
+app.mainloop()
     
 
