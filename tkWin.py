@@ -1,6 +1,6 @@
 import tkinter as tk
 from PIL import Image, ImageTk
-from aui import ImageObj, ImageLabel
+from aui.ImageObj import ImageObj, ImageLabel
 
 class tkFrame(tk.Frame):
     def __init__(self, master, **kw):       

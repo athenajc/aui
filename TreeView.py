@@ -97,11 +97,18 @@ class Listbox(ttkTree):
     def add_row(self, p):
         item = self.insert('', 'end', text=p[0])   
         for i in range(len(p)):
-            self.set(item, '#' + str(i+1), value=p[i])
+            s = p[i]
+            if len(s) > 100:
+                s = s[0:100]
+            self.set(item, '#' + str(i+1), value=s)
         
     def add_list(self, lst):
         for p in lst:
-            self.add_row(p)
+            self.add_row(p)            
+        
+    def set_list(self, lst):
+        self.clear()
+        self.add_list(lst)
             
 #-------------------------------------------------------------------------
 class TreeView(ttkTree):

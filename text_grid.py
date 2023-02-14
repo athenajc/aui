@@ -5,7 +5,7 @@ import tkinter.ttk as ttk
 from tkinter import filedialog
 import PIL
 from PIL import Image, ImageTk
-from aui import ImageObj, load_svg
+from aui.ImageObj import ImageObj, load_svg
 from fileio import *
 
 font = PIL.ImageFont.truetype('ChinSong1.ttf', 14) 

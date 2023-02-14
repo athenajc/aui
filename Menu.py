@@ -38,7 +38,7 @@ def add_button(master, name, action=None, pack=(), **kw):
     
 class tkOptionMenu(tk.OptionMenu):
     def __init__(self, master, items=['abcd'], act= None, **kw):
-        var = tk.StringVar()
+        var = self.var = tk.StringVar()
         var.set(items[0])
         super().__init__(master, var, *items, **kw)        
         self.config(cursor='hand2', width=10)
@@ -61,7 +61,13 @@ class tkOptionMenu(tk.OptionMenu):
         
     def add(self, label): 
         self.items.append(label)       
-        self.menu.add_command(label=label)
+        self.menu.add_command(label=label, command=tk._setit(self.var, label))
+        
+    def set_items(self, items):
+        self.items = []
+        self.menu.delete(0, 'end')        
+        for s in items:
+            self.add(s)
                    
     def on_trace(self, event=None, arg1=None, arg2=None):    
         name = self.get()
@@ -310,6 +316,7 @@ class MenuBar(tk.Frame):
                 self.add_button(key, action, **kw)
             else:
                 self.add_sep()
+        return self.button        
           
     def bind_action(self, item, action):
         self.button[item].bind('<ButtonRelease-1>', action) 
@@ -448,8 +455,8 @@ class Panel(tk.Text, ObjCommon):
                     obj.config(width = ((event.width-w)//w-1))    
                 else:
                     obj.config(width = event.width)  
-            else:
-               obj.config(height = event.height - 30)           
+            if 'y' in obj.fill:
+                obj.config(height = event.height - 30)           
             
     def add_scrollbar(self):
         from aui.aui_ui import ScrollBar
@@ -479,7 +486,7 @@ class Panel(tk.Text, ObjCommon):
             obj = tk.Label(self, text='', width=n, bg=self.bg)
         self.add(obj)        
         
-    def newline(self, w=1000, h=1, bg=None):
+    def newline(self, w=1920, h=1, bg=None):
         if bg == None:
             bg = self.cget('bg')
         frame = tk.Frame(self, width=w, height=h, bg=bg)  
@@ -575,6 +582,7 @@ class Panel(tk.Text, ObjCommon):
     def add_buttons(self, buttons, style='h', space=0, **kw):
         self.add_sep()
         lst = []   
+        self.button = {}
         for a, b in buttons:   
             if a.strip() == '-' or a.strip() == '':
                 self.add_sep()
@@ -583,6 +591,7 @@ class Panel(tk.Text, ObjCommon):
             if space != 0:
                self.add_space(space)
             lst.append(btn) 
+            self.button[a] = btn
         self.add_sep()
         return lst
         
@@ -615,7 +624,7 @@ class Panel(tk.Text, ObjCommon):
         DB.set_cache('colors', text)
     
     def add_colorbar(self, act=None): 
-        from aui import on_colorbutton       
+        from aui.ColorDialog import on_colorbutton       
 
         colors = eval(DB.get_cache('colors'))
         lst = []
@@ -669,6 +678,7 @@ if __name__ == '__main__':
     panel.add_colorbar()
     msg = panel.get('msg')
     panel.add(msg, fill='x')
+    options.set_items(['note', 'code', 'file'])
     
     panel.packfill()
     app.mainloop() 

@@ -12,6 +12,12 @@ class ImageLabel(tk.Label):
             obj = ImageObj(**kw)
         self.imgobj = obj    
         self.update()
+        self.bind('<Configure>', self.on_resize)
+        
+    def on_resize(self, event):
+        w, h = event.width, event.height
+        self.imgobj.resize(size=(w, h))
+        self.update()
         
     def gradient(self, mode, cmap):
         bkg = self.imgobj                  
@@ -182,7 +188,7 @@ class ObjCommon():
         if master == None:
             master = self
         layout = Layout(master)
-        return layout               
+        return layout       
         
     def get(self, name, **kw):
         if name == 'layout':
@@ -202,6 +208,7 @@ class aFrame(tk.Frame, ObjCommon):
         super().__init__(master, **kw)
         self.master = master
         self.root = master.winfo_toplevel()
+        self.layout = None
         if pack == True:  
            self.pack(fill='both', expand=True)   
 
@@ -343,6 +350,8 @@ def App(title='A frame', size=(800, 600), Frame=None, icon=None):
         frame = root.add(Frame)
         frame.pack(fill='both', expand=True)
     frame.size = size
+    frame.root = root
+    root.app = root
     return frame
     
 

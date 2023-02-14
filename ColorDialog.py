@@ -112,7 +112,7 @@ class RgbBar(tk.Canvas):
 class ColorCanvas(tk.Canvas):
     def __init__(self, master, color, **kw):
         super().__init__(master, **kw)
-        from aui import cmap_colorbar
+        from aui.ImageObj import cmap_colorbar
         self.color = color
         self.w = w = 600
         img = cmap_colorbar(lst, size=(w, 350))

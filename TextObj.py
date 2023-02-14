@@ -749,7 +749,7 @@ class TextEntry(tk.Text, TextUtils):
             text = str(text)
         ln = text.count('\n') 
         n = len(text)
-        if ln < 3 and n > 100:
+        if ln < 2 and n > 300:
             text = pformat(text)
         self.ln = text.count('\n') + 1
         self.config(heigh=min(self.ln, 3))        
@@ -757,7 +757,7 @@ class TextEntry(tk.Text, TextUtils):
         if self.iscode or len(text) > 100:
             self.init_code_config() 
         self.data = text        
-        self.set_text(text[0:100])
+        self.set_text(text[0:200])
         self.edit_modified(False)
             
     def init_text(self):
@@ -782,6 +782,7 @@ class TextEntry(tk.Text, TextUtils):
             
 
 TagTextObj = Text
+
 
 
 if __name__ == '__main__':    

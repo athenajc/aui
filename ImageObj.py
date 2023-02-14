@@ -444,6 +444,7 @@ class ImageObj(ImageFill, ButtonImage):
             img = self.load_svg(filename, size)
             size = None
         else:
+            print(filename)
             img = PIL.Image.open(filename)
         if autoclip != None:
             img = self.clip_image(img, axis=autoclip)
@@ -794,11 +795,17 @@ if __name__ == '__main__':
         image_viewer('/home/athena/Images/icons/akonadiconsole.png')  
         #test('mono/0.png') 
     #test_image_obj('/home/athena/Images/icons/akonadiconsole.png')
-    obj = ImageObj(filename='/home/athena/data/svg/thumb.svg')
-    from aui import App
-    frame = App(title='Show Image', size=(600,600))
-    frame.add_image(obj)
-    frame.mainloop()
+    fn = '/home/athena/data/svg/thumb.svg'
+    if 0:
+        obj = ImageObj(filename=fn)
+        obj.show()
+    
+    if 1:
+        from aui import App
+        app = App(title='Show Image', size=(600,600))
+        label = app.get('image', filename=fn)
+        label.place(x=0, y=0, relwidth=1, relheight=1)
+        app.mainloop()
 
 
 
